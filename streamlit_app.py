@@ -20,7 +20,14 @@ st.title('Architecture Diagram Reviewer')
 st.caption('Extract → correct → review → approve → generate → validate → download')
 st.warning(ValidationReport().limitations)
 st.sidebar.subheader('Demo status')
-st.sidebar.write('Meta key: ' + ('configured (live access unverified)' if os.getenv('MODEL_API_KEY') else 'not configured'))
+st.sidebar.write('Meta key: ' + ('configured' if os.getenv('MODEL_API_KEY') else 'not configured'))
+text_status = st.sidebar.empty()
+image_status = st.sidebar.empty()
+def show_live_status():
+    descriptions={'verified':'verified in this session','failed':'last request failed','not_tested':'not tested in this session'}
+    text_status.caption('Text API: ' + descriptions[st.session_state.get('meta_text_status','not_tested')])
+    image_status.caption('Image extraction: ' + descriptions[st.session_state.get('meta_image_status','not_tested')])
+show_live_status()
 public_preview = hosted()
 demo_code = ''
 if public_preview:
@@ -30,6 +37,8 @@ else:
     st.sidebar.caption('Docker provides the full restricted validator. Python-only mode supports editing and downloads.')
 if st.sidebar.button('Start a new session'):
     st.session_state.pop('workflow',None)
+    st.session_state.pop('meta_text_status',None)
+    st.session_state.pop('meta_image_status',None)
     st.session_state.upload_revision=st.session_state.get('upload_revision',0)+1
     st.rerun()
 st.info(('Public preview. Terraform validation is disabled. Sessions may reset when the free host sleeps. ' if public_preview else 'Local demonstration. ') + 'Live extraction sends the resized diagram to Meta. Fixture examples are synthetic and do not satisfy live acceptance.')
@@ -47,8 +56,14 @@ else:
     if st.button('Test live text connection', disabled=not live_enabled):
         client=MetaClient(demo_code=demo_code)
         try:
-            client.text_probe();st.success('Live text request succeeded. Image acceptance is still required.')
-        except ExtractionError as exc:st.error(str(exc))
+            client.text_probe()
+            st.session_state.meta_text_status='verified'
+            show_live_status()
+            st.success('Live text request succeeded. Image acceptance is still required.')
+        except ExtractionError as exc:
+            st.session_state.meta_text_status='failed'
+            show_live_status()
+            st.error(str(exc))
         finally:client.close()
     upload=st.file_uploader('PNG or JPEG, at most 5 MB / 20 megapixels',type=['png','jpg','jpeg'],key='image_'+str(st.session_state.upload_revision))
     if st.button('Extract with Meta',disabled=upload is None or not live_enabled):
@@ -56,10 +71,14 @@ else:
         try:
             with st.spinner('Extracting architecture from the real image…'):
                 graph=client.extract(upload.getvalue())
+            st.session_state.meta_image_status='verified'
             st.session_state.workflow=Workflow(graph,'live_meta')
             st.session_state.upload_revision+=1
             st.rerun()
-        except ExtractionError as exc:st.error(str(exc))
+        except ExtractionError as exc:
+            st.session_state.meta_image_status='failed'
+            show_live_status()
+            st.error(str(exc))
         finally:client.close()
 
 w=st.session_state.get('workflow')

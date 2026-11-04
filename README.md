@@ -6,6 +6,8 @@ Local human-reviewed diagram → evidence-based risk review → approved two-AZ 
 
 ## Release 0.3 — explicit scope and unresolved questions
 
+Release 0.3.1 also replaces the static "live access unverified" label with separate text/image request results for the current session. Successful calls show verified, failures show the last request failed, and new sessions or host restarts reset to not tested. Key presence alone never counts as verification.
+
 [Public demo](https://adr.sathishkannan.com) · [Deployment configuration](docs/RENDER_DEMO.md)
 
 The saved graph preview shows component counts and directed connections. Review now checks service-level control relationships and retains all unresolved observations. Before approval, every observed component is classified as included, replaced, omitted or unsupported by the fixed baseline. Separate acknowledgments cover scope/simplifications and open questions. These are enforced in the service and optional API, not only in the UI.

@@ -35,3 +35,39 @@ def test_unsaved_edits_block_review_and_generation():
     assert at.session_state.workflow.approval is None
     assert at.session_state.workflow.files is None
     assert not at.exception
+
+
+def test_live_status_updates_after_successful_calls_and_resets(monkeypatch):
+    import io
+    from archreview.fixtures import load_fixture
+    monkeypatch.delenv('ARCHREVIEW_HOSTED',raising=False)
+    monkeypatch.delenv('RENDER',raising=False)
+    monkeypatch.setenv('MODEL_API_KEY','test-only-placeholder')
+    class FakeClient:
+        fail_text=False
+        def __init__(self,**kwargs):pass
+        def text_probe(self):
+            from archreview.meta import ExtractionError
+            if self.fail_text:raise ExtractionError('Mocked request failed')
+            return 'Meta text connection ready'
+        def extract(self,data):return load_fixture('single-server')
+        def close(self):pass
+    monkeypatch.setattr('archreview.meta.MetaClient',FakeClient)
+    monkeypatch.setattr('streamlit.file_uploader',lambda *args,**kwargs:io.BytesIO(b'mocked-image'))
+    at=AppTest.from_file(str(APP)).run()
+    at.radio[0].set_value('Live Meta extraction').run()
+    button(at,'Test live text connection').click().run()
+    assert at.session_state.meta_text_status=='verified'
+    assert any('Text API: verified in this session' in e.value for e in at.sidebar.caption)
+    assert any('Image extraction: not tested in this session' in e.value for e in at.sidebar.caption)
+    button(at,'Extract with Meta').click().run()
+    assert at.session_state.meta_image_status=='verified'
+    assert any('Image extraction: verified in this session' in e.value for e in at.sidebar.caption)
+    assert not at.exception
+    FakeClient.fail_text=True
+    button(at,'Test live text connection').click().run()
+    assert any('Text API: last request failed' in e.value for e in at.sidebar.caption)
+    assert any('Image extraction: verified in this session' in e.value for e in at.sidebar.caption)
+    button(at,'Start a new session').click().run()
+    assert any('Text API: not tested in this session' in e.value for e in at.sidebar.caption)
+    assert any('Image extraction: not tested in this session' in e.value for e in at.sidebar.caption)
