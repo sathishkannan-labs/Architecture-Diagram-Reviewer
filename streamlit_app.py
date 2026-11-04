@@ -36,8 +36,9 @@ show_live_status()
 public_preview = hosted()
 demo_code = ''
 def reset_session():
-    for key in ('workflow','meta_text_status','meta_image_status','live_demo_code','demo_access_verified','demo_access_error'):
+    for key in ('workflow','meta_text_status','meta_image_status','demo_access_verified','demo_access_error'):
         st.session_state.pop(key,None)
+    st.session_state.live_demo_code=''
     st.session_state.upload_revision=st.session_state.get('upload_revision',0)+1
 
 def check_demo_access():
