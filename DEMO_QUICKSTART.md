@@ -37,8 +37,8 @@ The full image targets Linux/amd64. Apple Silicon/ARM users need an x86_64 Docke
 
 1. Fixture practice: load **public-database** to see a confirmed public exposure finding. For final acceptance, select **Live Meta extraction**, test text connectivity and upload a real diagram.
 2. Inspect the original extraction; edit a label or other graph fact and save. Show the `user_corrected` provenance. Unsaved graph edits disable review/generation/download.
-3. Run the six-rule review. Open evidence on a confirmed issue and an unverified control. A missing or inferred diagram control does not prove a real control is absent.
-4. Review the separate AWS target, decision IDs and baseline assumptions. Save target settings, check consent and record explicit approval of that revision.
+3. Run architecture review. Open a confirmed finding, an unverified coverage question and the service-level coverage table. A missing or inferred relationship does not prove a real control is absent.
+4. Review the separate AWS target, decision IDs, component scope and open questions. Save target settings. Check the target consent, scope acknowledgment and unresolved-question acknowledgment, then record approval of that revision.
 5. Generate and inspect every validation stage. Download the ZIP; check `traceability.json`, `ADR.md`, original/corrected graphs and `validation-report.json`.
 
 The bundled `docs/evidence/fixture-walkthrough.mp4` shows the real fixture UI with validation unavailable. It is a rehearsal recording, not live Meta acceptance. Record the final live demo only after both Meta requests and Docker validation succeed.

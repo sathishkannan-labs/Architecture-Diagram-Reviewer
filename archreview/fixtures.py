@@ -1,10 +1,13 @@
 from .models import ArchitectureGraph
+from pathlib import Path
 
-NAMES = ('single-server','public-database','redundant-private')
+NAMES = ('single-server','public-database','redundant-private','complex-ccm')
 
 def load_fixture(name):
     if name not in NAMES:
         raise ValueError('Unknown fixture')
+    if name == 'complex-ccm':
+        return ArchitectureGraph.model_validate_json((Path(__file__).parent/'data'/'complex-ccm.json').read_text())
     redundant = name == 'redundant-private'
     public = name == 'public-database'
     nodes = [dict(id='internet',type='internet',label='Internet',evidence='Internet label'),

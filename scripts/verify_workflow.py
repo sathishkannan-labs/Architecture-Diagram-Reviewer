@@ -17,7 +17,7 @@ def verify(require_validation=False,output=None):
         corrected=workflow.graph.model_copy(deep=True)
         corrected.components[0].label+=' (human review simulation)'
         workflow.correct(corrected)
-        workflow.run_review();workflow.approve(workflow.target.revision())
+        workflow.run_review();workflow.approve(workflow.target.revision(), acknowledge_scope=True, acknowledge_unknowns=True)
         report=workflow.generate()
         archive=workflow.download()
         with zipfile.ZipFile(io.BytesIO(archive)) as bundle:

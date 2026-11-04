@@ -4,6 +4,8 @@ from archreview.fixtures import NAMES,load_fixture
 root=Path(__file__).resolve().parents[1]/'examples'
 root.mkdir(exist_ok=True)
 for name in NAMES:
+    if name == 'complex-ccm':
+        continue  # The manually routed stress-test PNG is version controlled.
     graph=load_fixture(name)
     root.joinpath(name+'.json').write_text(graph.model_dump_json(indent=2))
     image=Image.new('RGB',(1200,820),'#f3f6fb'); d=ImageDraw.Draw(image)

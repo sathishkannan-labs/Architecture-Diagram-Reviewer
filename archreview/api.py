@@ -18,6 +18,8 @@ class Start(BaseModel):
 
 class ApprovalRequest(BaseModel):
     target_revision: str
+    acknowledge_scope: bool = False
+    acknowledge_unknowns: bool = False
 
 class Settings(BaseModel):
     region: str
@@ -73,8 +75,10 @@ def configure(body:Settings,authorization:str|None=Header(default=None)):
 @app.post('/session/approve')
 def approve(body:ApprovalRequest,authorization:str|None=Header(default=None)):
     w=_get(authorization)
-    try:w.approve(body.target_revision);return w.approval.model_dump()
-    except ValueError:raise HTTPException(409,'Review current graph first') from None
+    try:
+        w.approve(body.target_revision, acknowledge_scope=body.acknowledge_scope, acknowledge_unknowns=body.acknowledge_unknowns)
+        return w.approval.model_dump()
+    except ValueError as exc:raise HTTPException(409,str(exc)) from None
 
 @app.post('/session/generate')
 def generate(authorization:str|None=Header(default=None)):

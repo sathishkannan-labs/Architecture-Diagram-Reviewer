@@ -23,7 +23,8 @@ def _expire_reference(reference):
         except ValueError: pass
 
 from .models import ArchitectureGraph, Approval, TargetArchitecture, ValidationReport, StageResult
-from .review import review, propose_target
+from .review import review, propose_target, ensure_target_matches
+from .scope import require_acknowledgements
 
 class Workflow:
     def __init__(self, graph: ArchitectureGraph, mode='fixture'):
@@ -99,13 +100,17 @@ class Workflow:
             self.approval = self.files = self.report = None
 
     @serialized
-    def approve(self, target_revision: str):
+    def approve(self, target_revision: str, *, acknowledge_scope=False, acknowledge_unknowns=False):
         self.expire()
         if self.target is None or self.target.graph_revision != self.graph.revision():
             raise ValueError('Review the current graph before approval.')
         if target_revision != self.target.revision():
             raise ValueError('The target changed since it was displayed. Review and approve the new revision.')
-        self.approval = Approval(target_revision=self.target.revision(), approved_at=datetime.now(timezone.utc).isoformat())
+        ensure_target_matches(self.graph, self.target)
+        approval = Approval(target_revision=self.target.revision(), approved_at=datetime.now(timezone.utc).isoformat(),
+            scope_acknowledged=acknowledge_scope, open_questions_acknowledged=acknowledge_unknowns)
+        require_acknowledgements(self.target, approval)
+        self.approval = approval
         self.files = self.report = None
 
     @serialized
@@ -114,9 +119,8 @@ class Workflow:
         if not self.target or not self.approval or self.target.graph_revision != self.graph.revision() or self.approval.target_revision != self.target.revision():
             raise ValueError('Explicit approval of this target revision is required.')
         # Rebuild the approved decision set so accidental in-place tampering cannot introduce arbitrary decisions.
-        expected = propose_target(self.graph, review(self.graph))
-        if expected.decisions != self.target.decisions:
-            raise ValueError('Target decisions do not match this reviewed graph.')
+        ensure_target_matches(self.graph, self.target)
+        require_acknowledgements(self.target, self.approval)
 
     @serialized
     def generate(self, validator=None):

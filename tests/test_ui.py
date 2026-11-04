@@ -17,12 +17,13 @@ def test_unsaved_edits_block_review_and_generation():
     details=json.loads(at.text_area[0].value)
     details['unknowns'].append('Human question awaiting save')
     at.text_area[0].set_value(json.dumps(details)).run()
-    assert button(at,'Run the six-rule review').disabled
+    assert button(at,'Run architecture review').disabled
     button(at,'Save human corrections').click().run()
-    assert not button(at,'Run the six-rule review').disabled
+    assert not button(at,'Run architecture review').disabled
     assert len(at.session_state.workflow.corrections)==1
-    button(at,'Run the six-rule review').click().run()
-    at.checkbox[0].check().run()
+    button(at,'Run architecture review').click().run()
+
+    for checkbox in at.checkbox: checkbox.check().run()
     button(at,'Record explicit approval').click().run()
     button(at,'Generate trusted Terraform and run actual validation').click().run()
     assert not at.exception

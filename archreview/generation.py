@@ -13,6 +13,12 @@ DISCLAIMER = ValidationReport().limitations
 def render(target, approval, graph, original, corrections, mode):
     if approval.target_revision != target.revision() or target.graph_revision != graph.revision():
         raise ValueError('Approval or graph revision is stale.')
+    from .review import ensure_target_matches
+    from .scope import require_acknowledgements
+    from .coverage import control_coverage
+    from .visualization import graph_dot
+    ensure_target_matches(graph, target)
+    require_acknowledgements(target, approval)
     env = Environment(loader=FileSystemLoader(Path(__file__).parent / 'templates'),
                       undefined=StrictUndefined, autoescape=False, keep_trailing_newline=True)
     files = {name:env.get_template(name+'.j2').render(target=target, revision=target.revision()) for name in TEMPLATES}
@@ -27,14 +33,20 @@ def render(target, approval, graph, original, corrections, mode):
             if decision not in decisions:
                 raise ValueError('Template refers to an unapproved decision.')
             resources[f'{kind}.{name}'] = {'decision_id':decision, 'file':filename}
-    manifest = {'schema_version':1, 'mode':mode, 'graph_revision':graph.revision(),
+    manifest = {'schema_version':2, 'mode':mode, 'graph_revision':graph.revision(),
         'target_revision':target.revision(), 'approval':approval.model_dump(),
-        'decisions':decisions, 'resources':resources}
+        'decisions':decisions, 'resources':resources,
+        'component_scope':[s.model_dump() for s in target.scope],
+        'open_questions':[q.model_dump() for q in target.open_questions]}
     files['traceability.json'] = json.dumps(manifest, indent=2)
     files['original-extraction.json'] = original.model_dump_json(indent=2)
     files['corrected-graph.json'] = graph.model_dump_json(indent=2)
     files['corrections.json'] = json.dumps(corrections, indent=2)
     files['approved-target.json'] = target.model_dump_json(indent=2)
+    files['component-scope.json'] = json.dumps([s.model_dump() for s in target.scope], indent=2)
+    files['open-questions.json'] = json.dumps([q.model_dump() for q in target.open_questions], indent=2)
+    files['control-coverage.json'] = json.dumps(control_coverage(graph), indent=2)
+    files['corrected-graph.dot'] = graph_dot(graph)
     from .review import review
     files['findings.json'] = json.dumps([f.model_dump() for f in review(graph)], indent=2)
     files['ADR.md'] = '# ADR: Approved two-AZ AWS baseline\n\n' + DISCLAIMER + '\n\n' + (
@@ -43,6 +55,17 @@ def render(target, approval, graph, original, corrections, mode):
     for d in target.decisions:
         files['ADR.md'] += (f'## {d.id}\n\n{d.description}\n\nObservations: {", ".join(d.component_ids)}. '
             f'Findings: {", ".join(d.finding_ids) or "none"}.\n\n{d.baseline_assumption or ""}\n\n')
+    # JSON fences keep untrusted labels/evidence separate from report structure.
+    fence = '`' * max(3, 1 + max((len(m.group()) for q in target.open_questions for m in re.finditer(r'`+',q.question)), default=0))
+    files['ADR.md'] += ('## Component scope and accepted simplifications\n\n'
+        'This is a new illustrative baseline, not a faithful conversion or migration of the uploaded architecture. '
+        'Unsupported services are not consolidated automatically. Component roles and deployment coverage differ.\n\n')
+    for s in target.scope:
+        files['ADR.md'] += f'- `{s.component_id}`: **{s.disposition}**. {s.explanation}\n'
+    files['ADR.md'] += ('\nScope acknowledged: '+str(approval.scope_acknowledged)+
+        '\n\nOpen questions acknowledged: '+str(approval.open_questions_acknowledged)+'\n\n## Open questions carried into approval\n\n'+
+        fence+'json\n'+json.dumps([q.model_dump() for q in target.open_questions],indent=2)+'\n'+fence+'\n\n')
+    files['ADR.md'] += '## Control relationships\n\nSee control-coverage.json. A shown relationship does not prove effective authentication, authorization, secret access, monitoring or recovery.\n\n'
     files['ADR.md'] += ('## Unresolved controls and consequences\n\n'
         'This target does not automatically resolve every finding. Authentication, authorization, TLS, '
         'application delivery, monitoring and alerting remain unresolved. HTTP port 80 is illustrative. '
@@ -53,6 +76,8 @@ def render(target, approval, graph, original, corrections, mode):
         'No provisioning was attempted.\n')
     files['README.md'] = ('# Generated infrastructure — review required\n\n' + DISCLAIMER + '\n\n'
         'See ADR.md for decisions and unresolved controls; traceability.json maps all resources. '
+        'component-scope.json lists every observed component and its included/replaced/omitted/unsupported disposition. '
+        'open-questions.json and control-coverage.json retain unresolved information. '
         'Read validation-report.json before using any files. No plan or apply has been run. '
         'A missing lock file means the toolchain build is unavailable; run the supplied Docker build '
         'to create a genuine provider lock file. A fabricated lock file is never substituted.\n')

@@ -8,7 +8,7 @@ The included `evidence/fixture-walkthrough.mp4` records the actual local Streaml
 2. Select Live Meta extraction. Demonstrate successful live text connectivity and upload a real diagram. Show the extracted graph and compare its evidence to the diagram. Do not start from fixture JSON.
 3. Make a visible human correction in a table or Quick label correction, save it, and show `user_corrected` provenance and the preserved original graph. If appropriate, correct a genuinely missed/ambiguous detail rather than changing a cosmetic label.
 4. Run risk review. Show a confirmed issue with component evidence and an unverified missing-control question. Explain that diagram omission does not establish real-world absence.
-5. Show the proposed target, decision IDs, baseline assumptions and unresolved application/security work. Explicitly approve the displayed target revision.
+5. Show the proposed target, decision IDs and the component-scope table. Explain unsupported or omitted roles and the difference between the new baseline and the uploaded topology. Show open questions and control coverage. Check all three acknowledgments, then approve the displayed revision.
 6. Generate. Show actual `fmt`, `fmt-check`, `init` and `validate` stages with **passed** results. Expand output and show that runtime initialization used the bundled provider mirror.
 7. Show at least one `traceability.json` resource address → approved decision → finding/observation/baseline assumption. Open the ADR from the same ZIP.
 8. Download and inspect the ZIP and validation report. State that no plan or apply ran and validation does not prove security or provisioning readiness.

@@ -1,4 +1,6 @@
 from .models import ArchitectureGraph, Decision, Finding, TargetArchitecture
+from .coverage import control_coverage
+from .scope import target_scope, open_questions
 
 
 def review(graph: ArchitectureGraph) -> list[Finding]:
@@ -14,7 +16,6 @@ def review(graph: ArchitectureGraph) -> list[Finding]:
             status='confirmed' if proven else 'unverified'))
     apps = [c for c in graph.components if c.type in ('web_server', 'application_server')]
     dbs = [c for c in graph.components if c.type == 'database']
-    kinds = {c.type for c in graph.components if grounded(c)}
     for app in apps:
         if app.instances is None or app.instances == 1 or not grounded(app):
             add('AR-001', 'Potential application single point of failure', 'high', [app],
@@ -31,21 +32,31 @@ def review(graph: ArchitectureGraph) -> list[Finding]:
         elif db.exposure == 'unknown' or not grounded(db):
             add('AR-003', 'Database exposure is unknown', 'critical', [db],
                 'Private database placement is not established by sufficiently grounded diagram evidence.', 'Confirm private placement and restricted access.')
-    if 'authentication' not in kinds and not any(b.kind == 'authentication' and b.source != 'inferred' and b.evidence for b in graph.boundaries):
-        add('AR-004', 'Authentication visibility unverified', 'high', [],
-            'Authentication is not established by sufficiently grounded diagram evidence; its real-world absence is not established.',
-            'Confirm how users and services authenticate and where authorization is enforced.')
-    if 'secrets_manager' not in kinds:
-        add('AR-005', 'Secrets management visibility unverified', 'high', [],
-            'Secrets management is not established by sufficiently grounded diagram evidence.', 'Confirm a managed secrets mechanism; avoid embedded credentials.')
     for db in dbs:
         if db.failover != 'present' or not grounded(db):
             add('AR-006', 'Database failover not established', 'high', [db],
                 f'Database failover is reported as {db.failover}; provenance is {db.source}. Diagram evidence: {db.evidence or "not available"}.', 'Confirm recovery requirements; consider RDS Multi-AZ.', db.failover == 'absent')
-    if 'monitoring' not in kinds:
-        add('AR-008', 'Monitoring visibility unverified', 'medium', [],
-            'Monitoring and alerting are not established by sufficiently grounded diagram evidence.',
-            'Confirm metrics, logs, alarms, and incident response ownership.')
+    coverage = control_coverage(graph)
+    for kind, rule, title, severity in [
+        ('authentication','AR-004','Authentication coverage unverified','high'),
+        ('secrets_manager','AR-005','Secrets management coverage unverified','high'),
+        ('monitoring','AR-008','Monitoring coverage unverified','medium'),
+        ('backup','AR-007','Backup and recovery coverage unverified','high')]:
+        missing = [r['component_id'] for r in coverage if r['control'] == kind and r['status'] == 'unverified']
+        if missing:
+            add(rule, title, severity, [components_by_id[cid] for cid in missing],
+                'No sufficiently grounded service relationship or applicable boundary establishes '+kind.replace('_',' ')+
+                ' coverage for: '+', '.join(missing)+'. A standalone control box does not establish coverage; real-world absence is not proven.',
+                'Confirm applicable service relationships, configuration and effectiveness with the owner. Record unknowns without inventing links.')
+    for c in graph.components:
+        if c.type == 'other' and 'queue' in c.label.lower():
+            add('AR-009','Queue resilience unverified','medium',[c],
+                'Queue failover annotation: '+c.failover+'. Delivery guarantees, retries and dead-letter handling are not established by this schema. Diagram evidence: '+(c.evidence or 'not available'),
+                'Confirm redundancy, delivery semantics, retry policy and dead-letter handling. Do not assume they are absent.')
+        if c.type == 'other' and 'object storage' in c.label.lower():
+            add('AR-010','Object storage access policy unverified','high',[c],
+                'Private placement alone does not establish an access policy. Diagram evidence: '+(c.evidence or 'not available'),
+                'Confirm bucket policy, least-privilege access and encryption with the owner.')
     return findings
 
 
@@ -56,7 +67,8 @@ def propose_target(graph: ArchitectureGraph, findings: list[Finding]) -> TargetA
         return Decision(id=id, description=description,
             component_ids=sorted({cid for f in matches for cid in f.component_ids}) or ids,
             finding_ids=sorted({f.id for f in matches}), baseline_assumption=assumption)
-    return TargetArchitecture(graph_revision=graph.revision(), decisions=[
+    return TargetArchitecture(graph_revision=graph.revision(), scope=target_scope(graph),
+      open_questions=open_questions(graph, findings), decisions=[
         decision('D-NET', 'Two-AZ VPC, public ALB subnets, private application subnets, isolated database subnets.',
                  ['AR-003'], 'Baseline: a new IPv4 VPC in the selected AWS region; no existing network is imported.'),
         decision('D-APP', 'Internet-facing HTTP ALB routes to at least two private ASG instances across two AZs.',
@@ -64,3 +76,9 @@ def propose_target(graph: ArchitectureGraph, findings: list[Finding]) -> TargetA
         decision('D-DB', 'Private encrypted Multi-AZ RDS PostgreSQL with managed credentials and seven-day backups.',
                  ['AR-003', 'AR-005', 'AR-006', 'AR-007'], 'Baseline: application-to-database access is allowed on port 5432; application integration is not provisioned.'),
     ])
+
+
+def ensure_target_matches(graph, target):
+    expected = propose_target(graph, review(graph))
+    if target.graph_revision != graph.revision() or target.decisions != expected.decisions or target.scope != expected.scope or target.open_questions != expected.open_questions:
+        raise ValueError('Target decisions, scope or unresolved questions do not match this reviewed graph.')

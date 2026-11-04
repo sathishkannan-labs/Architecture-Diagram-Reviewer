@@ -90,6 +90,18 @@ class Decision(StrictModel):
     finding_ids: list[str]
     baseline_assumption: str | None = None
 
+class ScopeItem(StrictModel):
+    component_id: str
+    disposition: Literal['included', 'replaced', 'omitted', 'unsupported']
+    decision_ids: list[str] = Field(default_factory=list)
+    explanation: str
+
+class OpenQuestion(StrictModel):
+    id: str
+    component_ids: list[str] = Field(default_factory=list)
+    question: str
+    origin: Literal['graph', 'review']
+
 class TargetArchitecture(StrictModel):
     graph_revision: str
     region: Literal['us-east-1', 'us-west-2', 'eu-west-1'] = 'us-east-1'
@@ -99,6 +111,8 @@ class TargetArchitecture(StrictModel):
     instance_type: Literal['t3.micro', 't3.small'] = 't3.micro'
     db_instance_class: Literal['db.t3.micro', 'db.t3.small'] = 'db.t3.micro'
     decisions: list[Decision]
+    scope: list[ScopeItem] = Field(default_factory=list)
+    open_questions: list[OpenQuestion] = Field(default_factory=list)
 
     def revision(self) -> str:
         return digest(self.model_dump())
@@ -106,6 +120,8 @@ class TargetArchitecture(StrictModel):
 class Approval(StrictModel):
     target_revision: str
     approved_at: str
+    scope_acknowledged: bool = False
+    open_questions_acknowledged: bool = False
 
 class StageResult(StrictModel):
     stage: str

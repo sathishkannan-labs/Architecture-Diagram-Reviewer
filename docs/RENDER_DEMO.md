@@ -37,6 +37,8 @@ code is supplied in the initial deployment, so live calls start disabled.
 
 Check deployment reaches `live`, `/_stcore/health` returns 200, and the UI opens.
 Load a fixture, correct a label, review, approve, generate and download. Confirm
+the component-scope and unresolved-question acknowledgments are required, and
+that the download contains component-scope.json, open-questions.json and control-coverage.json. Confirm
 the download contains a hosting-stage `not_run` validation report. Confirm live
 buttons are disabled without both the configured key and correct demo code.
 

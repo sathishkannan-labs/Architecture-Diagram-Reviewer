@@ -14,8 +14,10 @@ def test_local_adapter_workflow():
     assert client.put('/session/graph',headers=headers,json=graph).status_code==200
     reviewed=client.post('/session/review',headers=headers)
     assert reviewed.status_code==200
-    assert len(reviewed.json()['findings'])==5
-    assert client.post('/session/approve',headers=headers,json={'target_revision': __import__('archreview.models',fromlist=['TargetArchitecture']).TargetArchitecture.model_validate(reviewed.json()['target']).revision()}).status_code==200
+    assert len(reviewed.json()['findings'])==6
+    revision=__import__('archreview.models',fromlist=['TargetArchitecture']).TargetArchitecture.model_validate(reviewed.json()['target']).revision()
+    assert client.post('/session/approve',headers=headers,json={'target_revision':revision}).status_code==409
+    assert client.post('/session/approve',headers=headers,json={'target_revision':revision,'acknowledge_scope':True,'acknowledge_unknowns':True}).status_code==200
     assert client.post('/session/generate',headers=headers).json()['status'] in ('passed','not_run')
     download=client.get('/session/download',headers=headers)
     assert download.status_code==200

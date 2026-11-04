@@ -4,15 +4,23 @@ Local human-reviewed diagram → evidence-based risk review → approved two-AZ 
 
 **Terraform validation does not prove security, provisioning success, application readiness, or production suitability. No AWS plan or apply is run.**
 
-## Release 0.2 — demo and publish package
+## Release 0.3 — explicit scope and unresolved questions
 
-Start with [DEMO_QUICKSTART.md](DEMO_QUICKSTART.md). Windows launchers, Linux/macOS launcher, offline readiness inventory, three-diagram workflow verification, and a GitHub publishing utility are included. Graph/target edits awaiting save block downstream actions; validator runtime errors still produce a downloadable failure report.
+[Public demo](https://adr.sathishkannan.com) · [Deployment configuration](docs/RENDER_DEMO.md)
+
+The saved graph preview shows component counts and directed connections. Review now checks service-level control relationships and retains all unresolved observations. Before approval, every observed component is classified as included, replaced, omitted or unsupported by the fixed baseline. Separate acknowledgments cover scope/simplifications and open questions. These are enforced in the service and optional API, not only in the UI.
+
+Downloads include `component-scope.json`, `open-questions.json`, `control-coverage.json` and `corrected-graph.dot`, alongside the ADR and schema-v2 traceability manifest. The complex CCM fixture reproduces a supplied live extraction: 14 components, 12 connections, two boundaries and five unknowns. Its five confirmed findings are retained; six unverified coverage/resilience/policy questions are now surfaced. Fixture replay does not make a new live Meta call.
+
+## Local demo package
+
+Start with [DEMO_QUICKSTART.md](DEMO_QUICKSTART.md). Windows launchers, Linux/macOS launcher, offline readiness inventory, four-diagram workflow verification, and a GitHub publishing utility are included. Graph/target edits awaiting save block downstream actions; validator runtime errors still produce a downloadable failure report.
 
 ## Current acceptance status
 
 For the lightweight public preview on Render Free, see [docs/RENDER_DEMO.md](docs/RENDER_DEMO.md). It keeps Terraform execution disabled, reports `not_run`, and requires an owner-configured API key and private demo code for live requests. Local Docker remains the complete validation environment.
 
-This is an implemented P0 candidate, **not a completed submission**. Fixture execution and automated tests work. Live Meta acceptance, clean Docker validation and a complete live demo remain blocked or unverified. See [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md) for exact results. The supplied fixture walkthrough must not be presented as a live Meta demonstration.
+This is an implemented P0 candidate, **not a completed submission**. Supplied live runs demonstrate text/image access and a complex graph matching its reference. Clean Docker validation and the final live walkthrough with a human correction remain unverified. See [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md) for exact results. The supplied historical fixture walkthrough must not be presented as a current live Meta demonstration.
 
 ## Start locally (recommended: Docker Desktop, Linux containers, x86_64)
 
@@ -30,8 +38,8 @@ Compose limits the container to 2 CPUs, 2 GiB memory and 128 processes, drops ca
 
 1. Select **Live Meta extraction**, optionally test text connectivity, and upload one PNG/JPEG (≤5 MB, ≤20 megapixels). Images are verified, resized to ≤1600 px, stripped of metadata, passed inline, and never written to disk by the service. The file widget is reset on successful extraction.
 2. Inspect the original extraction. Correct the editable component/connection tables, or use Quick label correction. Save corrections; changed records become `user_corrected`. Duplicate IDs, invalid enums and dangling references are rejected atomically. Boundaries and unresolved questions can be edited as JSON.
-3. Run the six-rule review. Confirmed findings require explicit evidence; missing controls are unverified questions, not assertions that controls are absent.
-4. Review the separate target, settings, decision IDs and baseline assumptions. Check the consent box and explicitly approve that exact revision. Target changes and graph corrections invalidate approval and generated artifacts.
+3. Run architecture review. Six mandatory checks plus backup coverage, queue resilience and object-storage policy questions distinguish confirmed evidence from unverified coverage. Control links are assessed per service; even a shown link does not prove effective enforcement. Inspect all open questions.
+4. Review the separate target, settings, decisions and component scope. Acknowledge simplifications, unsupported roles and unresolved questions, then explicitly approve that exact revision. Target changes and graph corrections invalidate approval and generated artifacts.
 5. Generate. Read the structured per-stage results, inspect the resource-to-decision manifest and download the ZIP even if validation is failed or unavailable. Sessions and artifacts expire after one hour; background expiry clears in-memory observations/artifacts. No persistent accounts or queues exist.
 
 The target is deliberately narrow: ALB, private ASG instances, isolated encrypted Multi-AZ PostgreSQL, managed database password, seven-day backups. It leaves TLS, authentication/authorization, monitoring, an application AMI, IAM credential access and application deployment unresolved. Private app subnets have no NAT or VPC endpoints. Read the ADR before interpreting the target as a runnable application.
@@ -84,7 +92,7 @@ docker run --rm --network=none --cpus=2 --memory=2g --pids-limit=128 \
   architecture-reviewer:local python scripts/verify_workflow.py --require-validation
 ```
 
-The fixture verifier checks all three diagrams, records a simulated correction, checks 26 resource decision references, ZIP contents and approval invalidation. Its JSON always declares fixture mode and live acceptance as not run. `--require-validation` exits nonzero if actual validation is unavailable.
+The fixture verifier checks all four diagrams, records a simulated correction, acknowledges component scope/open questions, checks 26 resource decision references, ZIP contents and approval invalidation. Its JSON always declares fixture mode and live acceptance as not run. `--require-validation` exits nonzero if actual validation is unavailable.
 
 ### Optional local FastAPI adapter
 

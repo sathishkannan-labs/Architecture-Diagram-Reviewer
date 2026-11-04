@@ -97,8 +97,9 @@ def test_hosted_ui_fixture_to_download_and_live_gate(public, monkeypatch):
     def click(label):
         next(b for b in at.button if b.label == label).click().run()
     click('Load fixture (no AI call)')
-    click('Run the six-rule review')
-    at.checkbox[0].check().run()
+    click('Run architecture review')
+
+    for checkbox in at.checkbox: checkbox.check().run()
     click('Record explicit approval')
     click('Generate trusted Terraform (validation disabled)')
     assert not at.exception
