@@ -14,6 +14,7 @@ import sys
 import tempfile
 import time
 from .models import StageResult, ValidationReport
+from .hosting import hosted
 
 TIMEOUT = 180
 MAX_OUTPUT = 64 * 1024
@@ -70,6 +71,10 @@ def _run(arguments, cwd, environment, deadline, limit=MAX_OUTPUT):
 def validate(files):
     report = ValidationReport()
     formatted = {}
+    if hosted():
+        report.stages.append(StageResult(stage='hosting', status='not_run',
+            output='Terraform execution is disabled in the public preview. Download the artifacts and use the local Docker workflow for actual validation.'))
+        return report, formatted
     if not sys.platform.startswith('linux') or fcntl is None:
         report.stages.append(StageResult(stage='platform', status='not_run',
             output='Restricted validation requires Linux. Use Docker Desktop with Linux containers. UI and downloads remain available.'))

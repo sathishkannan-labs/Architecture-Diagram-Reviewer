@@ -9,6 +9,7 @@ import warnings
 import httpx
 from PIL import Image, ImageOps, UnidentifiedImageError
 from .models import ArchitectureGraph
+from .hosting import LIVE_BUDGET, PreviewLimit
 
 MAX_BYTES = 5 * 1024 * 1024
 MAX_PIXELS = 20_000_000
@@ -38,8 +39,9 @@ def prepare_image(data: bytes) -> bytes:
 
 
 class MetaClient:
-    def __init__(self, *, key=None, model=None, transport=None, sleep=time.sleep):
+    def __init__(self, *, key=None, model=None, transport=None, sleep=time.sleep, demo_code=''):
         self.key = key or os.getenv('MODEL_API_KEY')
+        self.demo_code = demo_code
         self.model = model or os.getenv('META_MODEL', 'muse-spark-1.3')
         self.sleep = sleep
         # Fixed official host prevents accidental credential forwarding to arbitrary URLs.
@@ -50,6 +52,13 @@ class MetaClient:
         self.client.close()
 
     def completion(self, messages):
+        try:
+            with LIVE_BUDGET.request(self.demo_code):
+                return self._completion(messages)
+        except PreviewLimit as exc:
+            raise ExtractionError(str(exc)) from None
+
+    def _completion(self, messages):
         if not self.key:
             raise ExtractionError('MODEL_API_KEY is not configured. Live acceptance is blocked.')
         payload = {'model': self.model, 'messages': messages, 'max_completion_tokens': 6000}

@@ -10,6 +10,8 @@ Start with [DEMO_QUICKSTART.md](DEMO_QUICKSTART.md). Windows launchers, Linux/ma
 
 ## Current acceptance status
 
+For the lightweight public preview on Render Free, see [docs/RENDER_DEMO.md](docs/RENDER_DEMO.md). It keeps Terraform execution disabled, reports `not_run`, and requires an owner-configured API key and private demo code for live requests. Local Docker remains the complete validation environment.
+
 This is an implemented P0 candidate, **not a completed submission**. Fixture execution and automated tests work. Live Meta acceptance, clean Docker validation and a complete live demo remain blocked or unverified. See [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md) for exact results. The supplied fixture walkthrough must not be presented as a live Meta demonstration.
 
 ## Start locally (recommended: Docker Desktop, Linux containers, x86_64)

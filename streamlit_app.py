@@ -9,6 +9,7 @@ from archreview.models import ArchitectureGraph, ValidationReport
 from archreview.service import Workflow
 from archreview.editing import edited_graph
 from archreview.config import load_local_env
+from archreview.hosting import hosted, live_authorized
 
 load_local_env(Path(__file__).with_name(".env"))
 
@@ -18,12 +19,18 @@ st.caption('Extract → correct → review → approve → generate → validate
 st.warning(ValidationReport().limitations)
 st.sidebar.subheader('Demo status')
 st.sidebar.write('Meta key: ' + ('configured (live access unverified)' if os.getenv('MODEL_API_KEY') else 'not configured'))
-st.sidebar.caption('Docker provides the full restricted validator. Python-only mode supports editing and downloads.')
+public_preview = hosted()
+demo_code = ''
+if public_preview:
+    st.sidebar.caption('Public preview: Terraform execution is disabled; downloads report not_run.')
+    demo_code = st.sidebar.text_input('Live demo code', type='password')
+else:
+    st.sidebar.caption('Docker provides the full restricted validator. Python-only mode supports editing and downloads.')
 if st.sidebar.button('Start a new session'):
     st.session_state.pop('workflow',None)
     st.session_state.upload_revision=st.session_state.get('upload_revision',0)+1
     st.rerun()
-st.info('Local demonstration. Live extraction sends the resized diagram to Meta. Fixture examples are synthetic and do not satisfy live acceptance.')
+st.info(('Public preview. Terraform validation is disabled. Sessions may reset when the free host sleeps. ' if public_preview else 'Local demonstration. ') + 'Live extraction sends the resized diagram to Meta. Fixture examples are synthetic and do not satisfy live acceptance.')
 if 'upload_revision' not in st.session_state: st.session_state.upload_revision=0
 mode=st.radio('Source',['Fixture example','Live Meta extraction'],horizontal=True)
 if mode=='Fixture example':
@@ -32,15 +39,18 @@ if mode=='Fixture example':
     if st.button('Load fixture (no AI call)'):
         st.session_state.workflow=Workflow(load_fixture(name),'fixture');st.rerun()
 else:
-    if st.button('Test live text connection'):
-        client=MetaClient()
+    live_enabled = bool(os.getenv('MODEL_API_KEY')) and (not public_preview or live_authorized(demo_code))
+    if public_preview and not live_enabled:
+        st.info('Live mode needs an API key configured by the owner and the correct demo code. Fixture examples remain available.')
+    if st.button('Test live text connection', disabled=not live_enabled):
+        client=MetaClient(demo_code=demo_code)
         try:
             client.text_probe();st.success('Live text request succeeded. Image acceptance is still required.')
         except ExtractionError as exc:st.error(str(exc))
         finally:client.close()
     upload=st.file_uploader('PNG or JPEG, at most 5 MB / 20 megapixels',type=['png','jpg','jpeg'],key='image_'+str(st.session_state.upload_revision))
-    if st.button('Extract with Meta',disabled=upload is None):
-        client=MetaClient()
+    if st.button('Extract with Meta',disabled=upload is None or not live_enabled):
+        client=MetaClient(demo_code=demo_code)
         try:
             with st.spinner('Extracting architecture from the real image…'):
                 graph=client.extract(upload.getvalue())
@@ -126,8 +136,8 @@ consent=st.checkbox('I approve this target revision and its explicit baseline as
 if st.button('Record explicit approval',disabled=not consent or pending_edits or pending_target):w.approve(w.target.revision());st.rerun()
 if not w.approval:st.stop()
 st.success('Approved revision '+w.approval.target_revision[:16])
-st.subheader('4 · Generate and validate')
-if st.button('Generate trusted Terraform and run actual validation',disabled=pending_edits or pending_target):
+st.subheader('4 · Generate and download' if public_preview else '4 · Generate and validate')
+if st.button('Generate trusted Terraform (validation disabled)' if public_preview else 'Generate trusted Terraform and run actual validation',disabled=pending_edits or pending_target):
     try:
         with st.spinner('Validating offline, up to 180 seconds…'):w.generate()
         st.rerun()
