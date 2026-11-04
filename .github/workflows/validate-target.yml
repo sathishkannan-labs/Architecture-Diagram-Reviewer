@@ -28,7 +28,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
       - name: Prepare request without executing input
         shell: bash
         run: |
@@ -51,7 +53,7 @@ jobs:
         shell: bash
         run: |
           docker run --rm --network=none --cpus=2 --memory=2g --pids-limit=128 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp:rw,nosuid,nodev,size=512m,mode=1777 --mount "type=bind,src=$RUNNER_TEMP/approved-target/request.json,dst=/input/request.json,readonly" --mount "type=bind,src=$RUNNER_TEMP/approved-target/output,dst=/output" architecture-reviewer:validation python scripts/validate_request.py --request /input/request.json --output /output/validated-artifacts.zip
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
           name: approved-target-validation

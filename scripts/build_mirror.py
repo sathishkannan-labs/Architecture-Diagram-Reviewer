@@ -53,8 +53,8 @@ def main():
  }
 }
 ''')
-        subprocess.run([binary,'init','-backend=false','-input=false'],cwd=work,check=True)
-        subprocess.run([binary,'providers','mirror',str(mirror)],cwd=work,check=True)
+        subprocess.run([binary,'init','-backend=false','-input=false'],cwd=work,check=True,timeout=1800)
+        subprocess.run([binary,'providers','mirror',str(mirror)],cwd=work,check=True,timeout=1800)
         locks.joinpath('.terraform.lock.hcl').write_bytes(work.joinpath('.terraform.lock.hcl').read_bytes())
     unpack_mirror(mirror)
     for path in locks.iterdir():

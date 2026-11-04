@@ -52,3 +52,16 @@ def test_independent_baseline_does_not_claim_legacy_remediation():
     assert len(rows)==len(w.findings)
     assert next(r for r in rows if r['rule']=='AR-003')['target_status']=='Unresolved / outside generated scope'
     assert all(r['target_status']!='Addressed in new baseline only' for r in rows if r['finding_status']=='unverified')
+
+
+@pytest.mark.parametrize('name',['abc-','a--b','-abc','Abc','ab','a'*21])
+def test_aws_incompatible_target_names_rejected(name):
+    w=workflow();old=w.target.revision()
+    with pytest.raises(ValueError):w.configure_target(name=name)
+    assert w.target.revision()==old
+
+
+@pytest.mark.parametrize('name',['abc','a-b','name-123','a'*20])
+def test_valid_target_names_remain_supported(name):
+    w=workflow();w.configure_target(name=name)
+    assert w.target.name==name

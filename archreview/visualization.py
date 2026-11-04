@@ -1,9 +1,11 @@
 """Only escaped labels and fixed DOT attributes; never execute diagram text."""
-import json
 
 
 def graph_dot(graph):
-    quote = lambda s: json.dumps(str(s), ensure_ascii=True)
+    def quote(value):
+        text = str(value).replace('\\', '\\\\').replace('"', '\\"')
+        text = text.replace('\r\n', '\\n').replace('\n', '\\n').replace('\r', '\\n')
+        return '"' + text + '"'
     lines = ['digraph architecture {', 'rankdir=TB;',
         'node [shape=box, style="rounded,filled", fontname="sans-serif"];']
     for c in graph.components:

@@ -106,7 +106,8 @@ class TargetArchitecture(StrictModel):
     graph_revision: str
     database_source_id: str | None = Field(default=None, pattern=r'^[a-z][a-z0-9_]{0,63}$')
     region: Literal['us-east-1', 'us-west-2', 'eu-west-1'] = 'us-east-1'
-    name: str = Field(default='archreview-demo', pattern=r'^[a-z][a-z0-9-]{2,19}$')
+    name: str = Field(default='archreview-demo', min_length=3, max_length=20,
+                      pattern=r'^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$')
     desired_capacity: int = Field(default=2, ge=2, le=4)
     availability_zones: Literal[2] = 2
     instance_type: Literal['t3.micro', 't3.small'] = 't3.micro'

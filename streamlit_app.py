@@ -9,7 +9,7 @@ from archreview.models import ArchitectureGraph, ValidationReport
 from archreview.service import Workflow
 from archreview.editing import edited_graph
 from archreview.config import load_local_env
-from archreview.hosting import hosted, live_authorized
+from archreview.hosting import hosted, live_authorized, LIVE_BUDGET, PreviewLimit
 from archreview.visualization import graph_dot
 from archreview.coverage import control_coverage
 from archreview.presentation import group_questions
@@ -35,17 +35,26 @@ def show_live_status():
 show_live_status()
 public_preview = hosted()
 demo_code = ''
+def reset_session():
+    for key in ('workflow','meta_text_status','meta_image_status','live_demo_code','demo_access_verified','demo_access_error'):
+        st.session_state.pop(key,None)
+    st.session_state.upload_revision=st.session_state.get('upload_revision',0)+1
+
+def check_demo_access():
+    st.session_state.demo_access_verified=False
+    st.session_state.pop('demo_access_error',None)
+    try:
+        with LIVE_BUDGET.request(st.session_state.get('live_demo_code','')):
+            st.session_state.demo_access_verified=True
+    except PreviewLimit as exc:
+        st.session_state.demo_access_error=str(exc)
+
 if public_preview:
     st.sidebar.caption('Terraform runs outside this free host. App downloads stay not_run; GitHub Actions produces a separate validation report for your approved target.')
-    demo_code = st.sidebar.text_input('Live demo code', type='password')
+    demo_code = st.sidebar.text_input('Live demo code', type='password', key='live_demo_code',on_change=check_demo_access)
 else:
     st.sidebar.caption('Docker provides the full restricted validator. Python-only mode supports editing and downloads.')
-if st.sidebar.button('Start a new session'):
-    st.session_state.pop('workflow',None)
-    st.session_state.pop('meta_text_status',None)
-    st.session_state.pop('meta_image_status',None)
-    st.session_state.upload_revision=st.session_state.get('upload_revision',0)+1
-    st.rerun()
+st.sidebar.button('Start a new session',on_click=reset_session)
 st.info(('Public preview. Isolated Terraform validation is available through GitHub Actions after generation. Sessions may reset when the free host sleeps. ' if public_preview else 'Local demonstration. ') + 'Live extraction sends the resized diagram to Meta. Fixture examples are synthetic and do not satisfy live acceptance.')
 if 'upload_revision' not in st.session_state: st.session_state.upload_revision=0
 mode=st.radio('Source',['Fixture example','Live Meta extraction'],horizontal=True)
@@ -55,7 +64,10 @@ if mode=='Fixture example':
     if st.button('Load fixture (no AI call)'):
         st.session_state.workflow=Workflow(load_fixture(name),'fixture');st.rerun()
 else:
-    live_enabled = bool(os.getenv('MODEL_API_KEY')) and (not public_preview or live_authorized(demo_code))
+    live_enabled = bool(os.getenv('MODEL_API_KEY')) and (not public_preview or
+        (st.session_state.get('demo_access_verified',False) and live_authorized(demo_code)))
+    if public_preview and st.session_state.get('demo_access_error'):
+        st.info(st.session_state.demo_access_error)
     if public_preview and not live_enabled:
         st.info('Live mode needs an API key configured by the owner and the correct demo code. Fixture examples remain available.')
     if st.button('Test live text connection', disabled=not live_enabled):

@@ -1,13 +1,11 @@
 from .models import ArchitectureGraph, Decision, Finding, TargetArchitecture
-from .coverage import control_coverage
+from .coverage import control_coverage, grounded, grounded_edge
 from .scope import target_scope, open_questions
 
 
 def review(graph: ArchitectureGraph) -> list[Finding]:
     findings = []
     components_by_id = {c.id: c for c in graph.components}
-    def grounded(component):
-        return component.source != 'inferred' and bool(component.evidence) and (component.confidence is None or component.confidence >= 0.8)
     def add(rule, title, severity, components, evidence, recommendation, confirmed=False):
         proven = confirmed and all(grounded(c) for c in components)
         findings.append(Finding(id=rule+":"+("+".join(c.id for c in components) or "missing-information"), rule_id=rule, title=title, severity=severity,
@@ -25,7 +23,7 @@ def review(graph: ArchitectureGraph) -> list[Finding]:
         internet_edges = [e for e in graph.connections if e.target == db.id and
             components_by_id[e.source].type == 'internet']
         if db.exposure == 'public' or internet_edges:
-            explicit = db.exposure == 'public' or any(e.provenance != 'inferred' and e.evidence and (e.confidence is None or e.confidence >= 0.8) and grounded(components_by_id[e.source]) for e in internet_edges)
+            explicit = db.exposure == 'public' or any(grounded_edge(e) and grounded(components_by_id[e.source]) for e in internet_edges)
             add('AR-003', 'Database may be directly exposed to the internet', 'critical', [db],
                 'Public database placement or an Internet connection is represented. Diagram evidence: '+(db.evidence or 'not available')+'; connection evidence: '+('; '.join(e.evidence or 'not available' for e in internet_edges) or 'none')+'.',
                 'Place the database in isolated private subnets; permit only application traffic.', explicit)

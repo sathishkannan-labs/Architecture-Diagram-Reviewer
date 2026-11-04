@@ -9,7 +9,11 @@ ALLOWED = {'MODEL_API_KEY','META_MODEL'}
 
 def load_local_env(path: Path):
     if not path.is_file():return
-    for line in path.read_text(encoding='utf-8-sig').splitlines():
+    try:
+        text = path.read_text(encoding='utf-8-sig')
+    except (OSError, UnicodeDecodeError):
+        return
+    for line in text.splitlines():
         stripped=line.strip()
         if not stripped or stripped.startswith('#') or '=' not in stripped:continue
         key,value=stripped.split('=',1)

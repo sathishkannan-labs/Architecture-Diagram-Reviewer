@@ -61,3 +61,5 @@ This restores the included Git history if needed and pushes `main` without overw
 - GitHub publication/CI and final live recording: require the destination repository and successful live/Docker gates.
 
 **Terraform validation does not prove security, provisioning success, application readiness or production suitability. No plan or apply is run.**
+
+The Windows `.cmd` launcher sets execution policy only for its child PowerShell process. It does not change machine-wide settings or override an organization Group Policy. Local `.env` files must use UTF-8; unreadable or differently encoded files are ignored, while environment-provided settings remain available.

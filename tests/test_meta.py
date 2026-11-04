@@ -55,3 +55,29 @@ def test_bad_upload(data):
 
 def test_decoded_size_limit():
     with pytest.raises(ExtractionError):prepare_image(png((5000,4100)))
+
+
+@pytest.mark.parametrize('error',[httpx.RemoteProtocolError,httpx.ProxyError,httpx.DecodingError])
+def test_other_transport_failures_are_sanitized(error):
+    calls=[]
+    def handler(request):
+        calls.append(request)
+        raise error('sensitive upstream details')
+    c=MetaClient(key='private-test-key',transport=httpx.MockTransport(handler))
+    try:
+        with pytest.raises(ExtractionError,match='Meta request failed') as exc:c.text_probe()
+        assert len(calls)==1 and 'sensitive' not in str(exc.value)
+    finally:c.close()
+
+
+@pytest.mark.parametrize('choice',[None,'unexpected',42])
+def test_invalid_choice_shape_is_sanitized(choice):
+    c=MetaClient(key='test-only',transport=httpx.MockTransport(lambda r:httpx.Response(200,json={'choices':[choice]})))
+    try:
+        with pytest.raises(ExtractionError,match='unsupported response format'):c.text_probe()
+    finally:c.close()
+
+
+def test_unsupported_image_preserves_specific_error():
+    b=io.BytesIO();Image.new('RGB',(10,10)).save(b,format='GIF')
+    with pytest.raises(ExtractionError,match='Only PNG/JPEG'):prepare_image(b.getvalue())

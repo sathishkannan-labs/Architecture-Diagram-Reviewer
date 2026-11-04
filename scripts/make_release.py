@@ -18,12 +18,16 @@ def build(output):
     if git('status','--porcelain'):
         raise ValueError('Commit or remove working changes before building a release.')
     revision=git('rev-parse','HEAD')
+    if revision != git('rev-parse','refs/heads/main'):
+        raise ValueError('Release HEAD must match main so the archive and publisher use the same revision.')
     output=output.resolve();output.parent.mkdir(parents=True,exist_ok=True)
     with tempfile.TemporaryDirectory(prefix='archreview-release-') as directory:
         bundle=Path(directory)/'repository.bundle'
-        git('bundle','create',str(bundle),'--all')
+        git('bundle','create',str(bundle),'refs/heads/main')
         git('bundle','verify',str(bundle))
-        git('archive','--format=zip','--prefix='+PREFIX,'--output='+str(output),'HEAD')
+        if git('bundle','list-heads',str(bundle),'refs/heads/main').split()[0] != revision:
+            raise ValueError('main changed during release preparation. Retry from a clean checkout.')
+        git('archive','--format=zip','--prefix='+PREFIX,'--output='+str(output),revision)
         with zipfile.ZipFile(output,'a',zipfile.ZIP_DEFLATED) as archive:
             archive.write(bundle,PREFIX+'repository.bundle')
             hashes={name:hashlib.sha256(archive.read(name)).hexdigest() for name in archive.namelist() if not name.endswith('/')}

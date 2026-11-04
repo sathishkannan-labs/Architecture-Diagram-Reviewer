@@ -36,8 +36,6 @@ class PreviewBudget:
         if not hosted():
             yield
             return
-        if not live_authorized(code):
-            raise PreviewLimit('Live extraction requires the owner-provided demo code.')
         if not self.slot.acquire(blocking=False):
             raise PreviewLimit('One live request is already running. Try again later.')
         try:
@@ -49,6 +47,8 @@ class PreviewBudget:
                     raise PreviewLimit('The public demo live-request budget is exhausted. Use a fixture example.')
                 self.calls.append(now)
                 self.total += 1
+            if not live_authorized(code):
+                raise PreviewLimit('Live extraction requires the owner-provided demo code.')
             yield
         finally:
             self.slot.release()

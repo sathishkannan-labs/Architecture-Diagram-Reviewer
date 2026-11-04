@@ -31,4 +31,4 @@ def test_unpacked_mirror_removes_runtime_extraction_requirement(tmp_path):
 def test_unexpected_archive_paths_are_rejected(tmp_path):
     package(tmp_path,'../../escape')
     with pytest.raises(ValueError):mirror.unpack_mirror(tmp_path)
-    assert not (tmp_path/'escape').exists()
+    assert not (tmp_path/'registry.terraform.io/hashicorp/aws/escape').exists()

@@ -49,3 +49,7 @@ Render Free sleeps after 15 minutes of inactivity, with roughly a minute to wake
 Session state and generated downloads are temporary and can disappear on restart.
 This public preview does not satisfy live Meta acceptance or actual Terraform
 validation acceptance. Its deploy and memory usage must be verified on Render.
+
+Demo access: use a long randomly generated DEMO_CODE (at least 32 random bytes). Incorrect codes consume the shared live-request budget, preventing unlimited guessing. These are process-wide limits that reset on host restart; they are not a production authentication service. Starting a new session clears the entered code.
+
+Entering/changing the demo code is an authorization attempt and consumes the shared operation budget. The UI does not reveal whether a code is correct after the budget is exhausted. Successful Meta operations consume their own budget entry; internal retries remain one operation.

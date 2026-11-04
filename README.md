@@ -122,7 +122,7 @@ A validation request contains graph, target, approval and audit metadata—not a
 | Isolated validation and CI | Docker, libseccomp, GitHub Actions |
 | Public demo hosting | Render Free |
 
-The latest code checks passed **122 tests, with one skipped** on GitHub's runner. Docker initialization/validation and all four fixture workflows passed. The separate approved-target workflow also passed for the complex fixture with the legacy database role selected. These checks do not replace manual inspection of live extraction or the final demo recording.
+The Python suite checks extraction failures, evidence handling, approval invalidation, hosted demo access and release integrity. Docker initialization/validation and all four fixture workflows have passed in CI. The separate approved-target workflow also passed for the complex fixture with the legacy database role selected. These checks do not replace manual inspection of live extraction or the final demo recording.
 
 - [Code and Docker checks](https://github.com/sathishkannan-labs/Architecture-Diagram-Reviewer/actions/runs/41846569716)
 - [Approved-target validation run](https://github.com/sathishkannan-labs/Architecture-Diagram-Reviewer/actions/runs/41844339463)

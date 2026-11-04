@@ -34,6 +34,8 @@ def prepare_image(data: bytes) -> bytes:
                 output = io.BytesIO()
                 image.save(output, format='JPEG', quality=88)
                 return output.getvalue()
+    except ExtractionError:
+        raise
     except (UnidentifiedImageError, OSError, SyntaxError, ValueError, Image.DecompressionBombError, Image.DecompressionBombWarning):
         raise ExtractionError('Invalid or oversized image.') from None
 
@@ -89,7 +91,9 @@ class MetaClient:
                 if attempt == 2:
                     raise ExtractionError('Meta network request failed after three attempts.') from None
                 self.sleep(0.5 * 2 ** attempt)
-            except (KeyError, IndexError, TypeError, json.JSONDecodeError):
+            except httpx.RequestError:
+                raise ExtractionError('Meta request failed.') from None
+            except (KeyError, IndexError, TypeError, AttributeError, json.JSONDecodeError):
                 raise ExtractionError('Meta returned an unsupported response format.') from None
         raise ExtractionError('Meta request retries exhausted.')
 

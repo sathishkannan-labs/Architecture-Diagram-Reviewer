@@ -110,3 +110,34 @@ def test_hosted_ui_fixture_to_download_and_live_gate(public, monkeypatch):
     at.radio[0].set_value('Live Meta extraction').run()
     assert next(b for b in at.button if b.label == 'Test live text connection').disabled
     assert next(b for b in at.button if b.label == 'Extract with Meta').disabled
+
+
+def test_incorrect_codes_consume_budget_and_recover_after_window(public):
+    now=[0]
+    budget=hosting.PreviewBudget(clock=lambda:now[0])
+    for _ in range(20):
+        with pytest.raises(hosting.PreviewLimit,match='demo code'):
+            with budget.request('wrong'):pytest.fail('Unauthorized access')
+    assert budget.total==20
+    with pytest.raises(hosting.PreviewLimit,match='budget'):
+        with budget.request('private-test-demo-code'):pass
+    now[0]=3601
+    with budget.request('private-test-demo-code'):pass
+
+
+def test_hosted_code_widget_is_throttled_and_cleared_on_reset(public,monkeypatch):
+    monkeypatch.setenv('MODEL_API_KEY','test-only-placeholder')
+    at=AppTest.from_file(str(Path(__file__).resolve().parents[1]/'streamlit_app.py')).run()
+    at.radio[0].set_value('Live Meta extraction').run()
+    code=next(t for t in at.text_input if t.label=='Live demo code')
+    code.set_value('private-test-demo-code').run()
+    assert not next(b for b in at.button if b.label=='Test live text connection').disabled
+    next(b for b in at.button if b.label=='Start a new session').click().run()
+    assert next(t for t in at.text_input if t.label=='Live demo code').value==''
+    assert next(b for b in at.button if b.label=='Test live text connection').disabled
+    budget=hosting.LIVE_BUDGET
+    budget.total=100
+    next(t for t in at.text_input if t.label=='Live demo code').set_value('private-test-demo-code').run()
+    assert next(b for b in at.button if b.label=='Test live text connection').disabled
+    assert not at.session_state.demo_access_verified
+    assert not at.exception

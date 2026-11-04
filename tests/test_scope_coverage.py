@@ -173,3 +173,13 @@ def test_complex_ui_requires_scope_and_unknown_acknowledgments(monkeypatch):
     button('Generate approved Terraform').click().run()
     assert not at.exception
     assert len(json.loads(at.session_state.workflow.files['component-scope.json']))==14
+
+
+def test_graph_preview_preserves_unicode_without_dot_unicode_escapes():
+    from archreview.visualization import graph_dot
+    g=load_fixture('single-server')
+    g.components[0].label='தமிழ் Données 数据 🏗️ "quoted" \\ path\r\nnext'
+    dot=graph_dot(g)
+    assert 'தமிழ் Données 数据 🏗️' in dot
+    assert '\\u' not in dot
+    assert '\\"quoted\\"' in dot and '\\\\ path\\nnext' in dot
