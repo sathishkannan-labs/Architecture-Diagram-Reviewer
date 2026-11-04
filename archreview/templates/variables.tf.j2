@@ -1,8 +1,0 @@
-variable "ami_id" {
-  description = "Region-compatible x86_64 AMI containing your tested application on port 8080. No application is installed by this scaffold."
-  type        = string
-  validation {
-    condition     = can(regex("^ami-[0-9a-f]{8,17}$", var.ami_id))
-    error_message = "Provide a real, region-compatible AMI ID."
-  }
-}
