@@ -189,7 +189,7 @@ st.subheader('Finding → proposed target change')
 impact=remediation_summary(w.graph,w.target,w.findings)
 confirmed=[r for r in impact if r['finding_status']=='confirmed']
 st.caption('Saved target settings only. Addressed means in the new baseline; no existing system is modified.')
-if confirmed:st.dataframe([{'Finding':r['rule']+' · '+r['observed_problem'],'Severity':r['severity'],'Components':', '.join(r['components']),'Target outcome':r['target_status'],'Proposed change':r['proposed_change']} for r in confirmed],hide_index=True,use_container_width=True)
+if confirmed:st.table([{'Finding / observed component':r['rule']+' · '+', '.join(r['components']),'Severity':r['severity'],'Target outcome':r['target_status'],'Proposed change':r['proposed_change']} for r in confirmed])
 with st.expander('All finding outcomes and remaining work'):
     st.dataframe(impact,hide_index=True,use_container_width=True)
 st.subheader('Component scope and simplifications')
