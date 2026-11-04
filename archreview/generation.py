@@ -45,6 +45,8 @@ def render(target, approval, graph, original, corrections, mode):
     files['approved-target.json'] = target.model_dump_json(indent=2)
     files['component-scope.json'] = json.dumps([s.model_dump() for s in target.scope], indent=2)
     files['open-questions.json'] = json.dumps([q.model_dump() for q in target.open_questions], indent=2)
+    from .presentation import group_questions
+    files['question-groups.json'] = json.dumps(group_questions(target.open_questions),indent=2)
     files['control-coverage.json'] = json.dumps(control_coverage(graph), indent=2)
     files['corrected-graph.dot'] = graph_dot(graph)
     from .review import review

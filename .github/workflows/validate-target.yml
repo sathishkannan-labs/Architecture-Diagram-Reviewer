@@ -1,0 +1,53 @@
+name: Validate approved target
+on:
+  workflow_dispatch:
+    inputs:
+      request_json:
+        description: 'Paste validation-request.json (architecture metadata; no secrets). Leave blank to test the complex fixture.'
+        required: false
+        type: string
+        default: ''
+  push:
+    paths:
+      - '.github/workflows/validate-target.yml'
+      - 'archreview/validation_request.py'
+      - 'scripts/validate_request.py'
+permissions:
+  contents: read
+concurrency:
+  group: approved-target-validation
+  cancel-in-progress: false
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare request without executing input
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json,os
+          from pathlib import Path
+          event=json.loads(Path(os.environ['GITHUB_EVENT_PATH']).read_text())
+          request=(event.get('inputs') or {}).get('request_json','') or ''
+          if len(request.encode())>50000:raise SystemExit('Request exceeds 50000 bytes')
+          root=Path(os.environ['RUNNER_TEMP'])/'approved-target'
+          root.mkdir(mode=0o755,exist_ok=True)
+          (root/'request.json').write_text(request)
+          (root/'request.json').chmod(0o644)
+          (root/'output').mkdir(exist_ok=True)
+          (root/'output').chmod(0o777)
+          print('Using submitted approved-target metadata.' if request.strip() else 'No request submitted: validating the synthetic complex fixture only.')
+          PY
+      - run: docker build -t architecture-reviewer:validation .
+      - name: Validate trusted output offline as non-root
+        shell: bash
+        run: |
+          docker run --rm --network=none --cpus=2 --memory=2g --pids-limit=128 --cap-drop=ALL --security-opt=no-new-privileges --read-only --tmpfs /tmp:rw,nosuid,nodev,size=512m,mode=1777 --mount "type=bind,src=$RUNNER_TEMP/approved-target/request.json,dst=/input/request.json,readonly" --mount "type=bind,src=$RUNNER_TEMP/approved-target/output,dst=/output" architecture-reviewer:validation python scripts/validate_request.py --request /input/request.json --output /output/validated-artifacts.zip
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: approved-target-validation
+          path: ${{ runner.temp }}/approved-target/output/validated-artifacts.zip
+          retention-days: 7

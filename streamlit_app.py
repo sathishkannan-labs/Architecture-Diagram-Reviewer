@@ -12,6 +12,8 @@ from archreview.config import load_local_env
 from archreview.hosting import hosted, live_authorized
 from archreview.visualization import graph_dot
 from archreview.coverage import control_coverage
+from archreview.presentation import group_questions
+from archreview.validation_request import WORKFLOW_URL
 
 load_local_env(Path(__file__).with_name(".env"))
 
@@ -31,7 +33,7 @@ show_live_status()
 public_preview = hosted()
 demo_code = ''
 if public_preview:
-    st.sidebar.caption('Public preview: Terraform execution is disabled; downloads report not_run.')
+    st.sidebar.caption('Terraform runs outside this free host. App downloads stay not_run; GitHub Actions produces a separate validation report for your approved target.')
     demo_code = st.sidebar.text_input('Live demo code', type='password')
 else:
     st.sidebar.caption('Docker provides the full restricted validator. Python-only mode supports editing and downloads.')
@@ -41,7 +43,7 @@ if st.sidebar.button('Start a new session'):
     st.session_state.pop('meta_image_status',None)
     st.session_state.upload_revision=st.session_state.get('upload_revision',0)+1
     st.rerun()
-st.info(('Public preview. Terraform validation is disabled. Sessions may reset when the free host sleeps. ' if public_preview else 'Local demonstration. ') + 'Live extraction sends the resized diagram to Meta. Fixture examples are synthetic and do not satisfy live acceptance.')
+st.info(('Public preview. Isolated Terraform validation is available through GitHub Actions after generation. Sessions may reset when the free host sleeps. ' if public_preview else 'Local demonstration. ') + 'Live extraction sends the resized diagram to Meta. Fixture examples are synthetic and do not satisfy live acceptance.')
 if 'upload_revision' not in st.session_state: st.session_state.upload_revision=0
 mode=st.radio('Source',['Fixture example','Live Meta extraction'],horizontal=True)
 if mode=='Fixture example':
@@ -100,11 +102,12 @@ with st.expander('Corrected graph preview', expanded=True):
 with st.expander('Original extraction (retained for audit)'):
     st.json(w.original.model_dump())
 key=w.graph.revision()
-components=st.data_editor(pd.DataFrame([c.model_dump() for c in w.graph.components]),
-    num_rows='dynamic',disabled=['source'],key='nodes_'+key,use_container_width=True)
-cols=['source','target','evidence','confidence','provenance']
-connections=st.data_editor(pd.DataFrame([e.model_dump() for e in w.graph.connections],columns=cols),
-    num_rows='dynamic',disabled=['provenance'],key='edges_'+key,use_container_width=True)
+with st.expander('Edit components and connections'):
+    components=st.data_editor(pd.DataFrame([c.model_dump() for c in w.graph.components]),
+        num_rows='dynamic',disabled=['source'],key='nodes_'+key,use_container_width=True)
+    cols=['source','target','evidence','confidence','provenance']
+    connections=st.data_editor(pd.DataFrame([e.model_dump() for e in w.graph.connections],columns=cols),
+        num_rows='dynamic',disabled=['provenance'],key='edges_'+key,use_container_width=True)
 with st.expander('Boundaries, unresolved information and assumptions'):
     details=st.text_area('JSON for boundaries / unknowns / assumptions',json.dumps({k:w.graph.model_dump()[k] for k in ['boundaries','unknowns','assumptions']},indent=2),height=220,key='details_'+key)
 clean=lambda frame:json.loads(frame.to_json(orient='records'))
@@ -144,18 +147,23 @@ else:
     left,right=st.columns(2)
     left.metric('Confirmed weaknesses',sum(f.status=='confirmed' for f in w.findings))
     right.metric('Unverified controls or facts',sum(f.status=='unverified' for f in w.findings))
-    st.dataframe([{'Finding':f.id,'Severity':f.severity,'Status':f.status,'Title':f.title,'Components':', '.join(f.component_ids) or 'Missing diagram information'} for f in w.findings],use_container_width=True,hide_index=True)
-    for finding in w.findings:
-        with st.expander(finding.id+' · '+finding.title):
+    st.dataframe([{'Rule':f.rule_id,'Severity':f.severity,'Status':f.status,'Title':f.title,'Components':', '.join(f.component_ids) or 'Missing diagram information'} for f in w.findings],use_container_width=True,hide_index=True)
+    with st.expander('Evidence and recommendations (advanced)'):
+        for finding in w.findings:
+            st.markdown('**'+finding.rule_id+' · '+finding.title+'**')
             st.write('Evidence: '+finding.evidence)
             st.write('Recommendation: '+finding.recommendation)
 st.subheader('Unresolved questions carried into approval')
-st.caption('Diagram unknowns and unverified review findings remain open. Acknowledgment does not resolve them.')
+groups=group_questions(w.target.open_questions)
+st.caption(f'{len(groups)} topic group(s) from {len(w.target.open_questions)} source entries. Related entries are grouped for readability; every original question remains open and is exported.')
 if w.target.open_questions:
-    st.dataframe([{'ID':q.id,'Origin':q.origin,'Components':', '.join(q.component_ids) or 'Diagram information',
-        'Question':q.question} for q in w.target.open_questions], hide_index=True, use_container_width=True)
+    st.dataframe([{'Topic':g['title'],'Clarify':g['summary'],'Source entries':len(g['entries'])} for g in groups],hide_index=True,use_container_width=True)
+    with st.expander('All original questions and source references (advanced)'):
+        for group in groups:
+            st.markdown('**'+group['title']+'**')
+            st.dataframe([{'ID':q['id'],'Origin':q['origin'],'Components':', '.join(q['component_ids']) or 'Diagram information','Question':q['question']} for q in group['entries']],hide_index=True,use_container_width=True)
 else:st.info('No unresolved questions were recorded. This does not establish production readiness.')
-with st.expander('Service-level control coverage',expanded=True):
+with st.expander('Service-level control coverage (advanced)'):
     st.caption('Only sufficiently grounded direct connections or applicable authentication boundaries count as shown relationships. Transitive links and standalone control boxes do not prove service coverage.')
     st.dataframe(control_coverage(w.graph),hide_index=True,use_container_width=True)
 st.subheader('3 · Approve the proposed AWS target')
@@ -168,12 +176,15 @@ if pending_target:st.info('Save target settings before approving or generating t
 if st.button('Save target settings (invalidates approval)',disabled=pending_edits):
     try:w.configure_target(region=region,name=target_name,desired_capacity=capacity);st.rerun()
     except ValueError:st.error('Use a 3–20 character lowercase target name, beginning with a letter.')
-st.table([{'ID':d.id,'Proposed change':d.description,'Observed components':', '.join(d.component_ids),'Finding references':', '.join(d.finding_ids) or 'Baseline assumption'} for d in w.target.decisions])
+with st.expander('Target decisions and evidence (advanced)'):
+    st.table([{'ID':d.id,'Proposed change':d.description,'Observed components':', '.join(d.component_ids),'Finding references':', '.join(d.finding_ids) or 'Baseline assumption'} for d in w.target.decisions])
 st.subheader('Component scope and simplifications')
 st.warning('This fixed target is a new illustrative baseline. It does not reproduce the entire uploaded architecture or migrate existing services/data. Unsupported roles are not automatically merged into the ASG or RDS.')
 labels={c.id:c.label for c in w.graph.components}
-st.dataframe([{'Component':s.component_id,'Label':labels[s.component_id],'Disposition':s.disposition,
-    'Decision references':', '.join(s.decision_ids) or 'No generated implementation','Explanation':s.explanation} for s in w.target.scope],hide_index=True,use_container_width=True)
+st.write(' · '.join(f'{status}: {sum(s.disposition==status for s in w.target.scope)}' for status in ['included','replaced','omitted','unsupported']))
+with st.expander('Inspect every component scope disposition'):
+    st.dataframe([{'Component':s.component_id,'Label':labels[s.component_id],'Disposition':s.disposition,
+        'Decision references':', '.join(s.decision_ids) or 'No generated implementation','Explanation':s.explanation} for s in w.target.scope],hide_index=True,use_container_width=True)
 unsupported=sum(s.disposition=='unsupported' for s in w.target.scope)
 if unsupported:st.error(f'{unsupported} component role(s) are unsupported by this template. They remain in the observed graph and will not be implemented by the generated Terraform.')
 with st.expander('Full proposed target and baseline assumptions'):st.json(w.target.model_dump())
@@ -186,14 +197,14 @@ if st.button('Record explicit approval',disabled=not (consent and scope_consent 
 if not w.approval:st.stop()
 st.success('Approved revision '+w.approval.target_revision[:16])
 st.subheader('4 · Generate and download' if public_preview else '4 · Generate and validate')
-if st.button('Generate trusted Terraform (validation disabled)' if public_preview else 'Generate trusted Terraform and run actual validation',disabled=pending_edits or pending_target):
+if st.button('Generate approved Terraform' if public_preview else 'Generate trusted Terraform and run actual validation',disabled=pending_edits or pending_target):
     try:
-        with st.spinner('Validating offline, up to 180 seconds…'):w.generate()
+        with st.spinner('Generating approved artifacts…' if public_preview else 'Validating offline, up to 180 seconds…'):w.generate()
         st.rerun()
     except ValueError as exc:st.error(str(exc))
 if w.report:
     st.write('Validation status: **'+w.report.status+'**')
-    if w.report.status=='not_run':st.info('Actual Terraform validation is unavailable in this runtime. The download includes the reason and all generated artifacts.')
+    if w.report.status=='not_run':st.info('Terraform has not run for this download in this app. Use the isolated GitHub validation workflow below, or local Docker. Its external result is separate from this app report.')
     elif w.report.status=='passed':st.success('Terraform initialization and validation passed. This does not establish security or application readiness.')
     elif w.report.status=='timed_out':st.warning('Validation exceeded the time limit. No successful validation is claimed.')
     else:st.error('Validation failed. Inspect the stage output and download the report for diagnosis.')
@@ -201,8 +212,22 @@ if w.report:
         with st.expander(stage.stage+' · '+stage.status,expanded=stage.status!='passed'):st.code(stage.output,language='text')
     manifest=json.loads(w.files['traceability.json'])
     st.caption('Resource traceability · approved target '+manifest['target_revision'][:16])
-    st.dataframe([{'Resource':address,'Decision':item['decision_id'],'Template output':item['file']} for address,item in manifest['resources'].items()],hide_index=True,use_container_width=True)
+    with st.expander('Resource-to-decision mappings (advanced)'):
+        st.dataframe([{'Resource':address,'Decision':item['decision_id'],'Template output':item['file']} for address,item in manifest['resources'].items()],hide_index=True,use_container_width=True)
     with st.expander('Full traceability manifest'):st.json(manifest)
     with st.expander('Architecture decision record'):st.code(w.files['ADR.md'],language='markdown')
-    st.caption(f'Download includes component-scope.json, open-questions.json and control-coverage.json; {len(w.target.open_questions)} question(s) remain unresolved.')
+    st.caption(f'Download retains scope, coverage and every original question: {len(groups)} topic group(s), {len(w.target.open_questions)} source entries. Acknowledgment does not resolve them.')
     st.download_button('Download artifacts · '+w.report.status,w.download(),file_name='architecture-'+w.report.status+'.zip',mime='application/zip',disabled=pending_edits or pending_target)
+    st.subheader('Validate this approved target')
+    st.write('Run actual formatting, offline initialization and Terraform validation in the repository’s isolated Docker workflow. No AWS credentials, plan or apply are needed.')
+    st.caption('Submitting the request shares graph labels, evidence and correction history with GitHub. Review the data first. Nothing is sent automatically; repository write access is required to run the workflow.')
+    if not pending_edits and not pending_target:
+        try:
+            request=w.validation_request()
+            st.download_button('Download validation request',request,file_name='validation-request.json',mime='application/json')
+            st.link_button('Open Terraform validation workflow',WORKFLOW_URL)
+            with st.expander('Validation instructions and request JSON'):
+                st.markdown('1. Copy the JSON below, or open the downloaded request file.\n2. Open the workflow, select **Run workflow**, keep branch **main**, and paste the JSON into **request_json**.\n3. Run it. After completion, download **approved-target-validation** from the run’s Artifacts section.\n4. Inspect **validation-report.json** and matching revisions in **validation-context.json**. Blank input validates only a fixture. A stale template request is rejected.')
+                st.code(request,language='json')
+                st.caption('The original app ZIP remains not_run. A successful workflow creates a separate ZIP with its actual validation status. The app does not import or trust uploaded pass reports.')
+        except ValueError as exc:st.info(str(exc))

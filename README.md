@@ -4,6 +4,12 @@ Local human-reviewed diagram → evidence-based risk review → approved two-AZ 
 
 **Terraform validation does not prove security, provisioning success, application readiness, or production suitability. No AWS plan or apply is run.**
 
+## Release 0.4 — compact review and approved-target validation
+
+Open questions are grouped into topics without dropping source entries or changing approval data. Detailed evidence, editing tables, scope rows and resource mappings are expandable, keeping the default page shorter.
+
+After generation, download the validation request and open the **Validate approved target** workflow. It regenerates the same approved trusted templates, verifies revision/template hashes, runs actual restricted offline Terraform validation and publishes a separate report ZIP. See [TARGET_VALIDATION.md](docs/TARGET_VALIDATION.md). This is an owner-triggered external workflow; Terraform still does not run in Render Free, and the app does not automatically submit architecture data to GitHub.
+
 ## Release 0.3 — explicit scope and unresolved questions
 
 Release 0.3.1 also replaces the static "live access unverified" label with separate text/image request results for the current session. Successful calls show verified, failures show the last request failed, and new sessions or host restarts reset to not tested. Key presence alone never counts as verification.

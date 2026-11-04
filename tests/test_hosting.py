@@ -101,7 +101,7 @@ def test_hosted_ui_fixture_to_download_and_live_gate(public, monkeypatch):
 
     for checkbox in at.checkbox: checkbox.check().run()
     click('Record explicit approval')
-    click('Generate trusted Terraform (validation disabled)')
+    click('Generate approved Terraform')
     assert not at.exception
     workflow = at.session_state.workflow
     assert workflow.report.status == 'not_run'

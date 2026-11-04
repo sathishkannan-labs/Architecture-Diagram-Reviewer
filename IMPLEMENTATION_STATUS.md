@@ -1,3 +1,12 @@
+# Release 0.4 additions — November 4, 2026
+
+- Compact topic grouping preserves every original question and its IDs. The user's latest 12 source entries become four display topics; raw approval data is unchanged.
+- Evidence, editing tables, control coverage, target decisions, scope details and resource mappings are expandable. Scope counts and unsupported-role warnings stay prominent.
+- Added a downloadable validation-request.json and a dedicated Validate approved target GitHub workflow. The request preserves graph/approval/audit metadata and expected template/lock hashes. It never accepts arbitrary Terraform.
+- The workflow regenerates trusted output and runs the existing validator in a non-root, offline, resource-limited, read-only Docker container. It creates a separate validated ZIP and matching revision/hash context. The Render report remains not_run.
+- No GitHub token is stored in Render; the owner explicitly submits the request to the workflow. Blank workflow input validates only the complex fixture. Requests are bounded to 50,000 bytes.
+- Local validation: 114 tests passed and four native non-root checks skipped in this host. The previous release's actual Docker CI evidence remains below; release 0.4's workflow run must be checked separately.
+
 # Release 0.3 implementation status — November 4, 2026
 
 The public preview is hosted on Render Free. Source: https://github.com/sathishkannan-labs/Architecture-Diagram-Reviewer. Demo: https://adr.sathishkannan.com.

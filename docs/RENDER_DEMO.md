@@ -3,7 +3,10 @@
 This preview supports fixture or owner-authorized live extraction, correction,
 review, approval, trusted Terraform generation, traceability and ZIP downloads.
 Terraform execution is always disabled on Render. Reports honestly say `not_run`.
-Use the existing local Docker workflow for actual offline validation.
+Use the approved-target GitHub workflow in [TARGET_VALIDATION.md](TARGET_VALIDATION.md),
+or the existing local Docker workflow, for actual offline validation. The app
+provides a request download and workflow link after approval/generation. External
+results remain separate from the Render report.
 
 ## Service settings
 

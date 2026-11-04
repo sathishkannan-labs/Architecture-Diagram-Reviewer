@@ -92,3 +92,10 @@ def download(authorization:str|None=Header(default=None)):
     w=_get(authorization)
     try:return Response(w.download(),media_type='application/zip',headers={'Content-Disposition':'attachment; filename="architecture.zip"'})
     except ValueError:raise HTTPException(409,'Generate approved target first') from None
+
+@app.get('/session/validation-request')
+def validation_request(authorization:str|None=Header(default=None)):
+    from fastapi.responses import Response
+    w=_get(authorization)
+    try:return Response(w.validation_request(),media_type='application/json',headers={'Content-Disposition':'attachment; filename="validation-request.json"'})
+    except ValueError as exc:raise HTTPException(409,str(exc)) from None

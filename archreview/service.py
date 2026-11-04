@@ -142,7 +142,17 @@ class Workflow:
         files['validation-report.json'] = report.model_dump_json(indent=2)
         self.files, self.report = files, report
         self.generated_at = time.monotonic()
+        try:
+            self.files['validation-request.json']=self.validation_request()
+        except ValueError:
+            self.files['validation-request-unavailable.txt']='Request exceeds the GitHub demo limit. Use the local Docker workflow.'
         return self.report
+
+    @serialized
+    def validation_request(self):
+        from .validation_request import build_request
+        self.assert_approved()
+        return build_request(self.graph,self.original,self.corrections,self.target,self.approval,self.mode)
 
     @serialized
     def download(self):

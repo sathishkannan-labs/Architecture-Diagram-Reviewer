@@ -170,6 +170,6 @@ def test_complex_ui_requires_scope_and_unknown_acknowledgments(monkeypatch):
     at.checkbox[2].check().run()
     assert not button('Record explicit approval').disabled
     button('Record explicit approval').click().run()
-    button('Generate trusted Terraform (validation disabled)').click().run()
+    button('Generate approved Terraform').click().run()
     assert not at.exception
     assert len(json.loads(at.session_state.workflow.files['component-scope.json']))==14
