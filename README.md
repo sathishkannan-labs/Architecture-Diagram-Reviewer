@@ -1,66 +1,90 @@
 # Architecture Diagram Reviewer
 
-**Architecture risk reviewer with an illustrative AWS remediation baseline.** It generates a fixed ALB/ASG/RDS target, not a complete diagram-to-cloud conversion. Independent services, queues, object storage and application integration remain outside its generated scope.
+### Turn an architecture diagram into an evidence-based review and an approved AWS infrastructure baseline.
 
-Local human-reviewed diagram → evidence-based risk review → approved two-AZ AWS target → traceable Terraform → offline validation → ZIP.
+Built for the **Meta AI Developer Hackathon**, Architecture Diagram Reviewer uses the **Meta Model API** to extract components, connections and diagram evidence from an uploaded image. You inspect and correct those observations, review risks, approve a scoped AWS target, and download traceable Terraform with an actual validation report from an isolated workflow.
 
-**Terraform validation does not prove security, provisioning success, application readiness, or production suitability. No AWS plan or apply is run.**
+**[Try the live demo](https://adr.sathishkannan.com/) · [Inspect a validated sample](docs/evidence/README.md) · [Recording walkthrough](docs/RECORDING.md)**
 
-## Release 0.5 — final demo preparation
+> The generated infrastructure is an illustrative **AWS ALB / Auto Scaling Group / RDS PostgreSQL baseline**. It does not reproduce every service in a diagram, migrate data, or deploy an application. Terraform validation checks configuration validity; it does not establish security or production readiness. No AWS plan or apply is run.
 
-A finding-to-target summary distinguishes changes in the new baseline from unresolved or unsupported observed roles. Database-role selection is recorded in the approved target; changing it revokes approval, artifacts and validation requests. Selecting a role does not migrate data or modify existing resources. Other database roles stay unsupported.
+## The problem
 
-[Validated complex sample and provenance notes](docs/evidence/README.md) · [Recording checklist](docs/RECORDING.md). Downloads now include `remediation-summary.json`.
+Architecture diagrams capture valuable intent, but reviewing them often means manually finding exposed databases, single points of failure and missing control evidence. Turning that review into infrastructure introduces another challenge: keeping the generated resources connected to the observations and decisions that justified them.
 
-## Release 0.4 — compact review and approved-target validation
+This project makes that chain inspectable. It distinguishes what the diagram shows, what remains unknown, what the user approves, and what the generated target actually implements.
 
-Open questions are grouped into topics without dropping source entries or changing approval data. Detailed evidence, editing tables, scope rows and resource mappings are expandable, keeping the default page shorter.
+## How it works
 
-After generation, download the validation request and open the **Validate approved target** workflow. It regenerates the same approved trusted templates, verifies revision/template hashes, runs actual restricted offline Terraform validation and publishes a separate report ZIP. See [TARGET_VALIDATION.md](docs/TARGET_VALIDATION.md). This is an owner-triggered external workflow; Terraform still does not run in Render Free, and the app does not automatically submit architecture data to GitHub.
+1. **Extract with Meta.** Upload a PNG or JPEG. Meta produces a schema-validated graph with component labels, directed connections, evidence and provenance.
+2. **Inspect and correct.** Compare the saved graph with the diagram. Record human corrections while retaining the original extraction and revision history.
+3. **Review the evidence.** Deterministic checks flag application redundancy, database exposure and failover, plus unverified authentication, secrets, monitoring, backups, queue resilience and storage policies. Unverified coverage is not treated as proof of absence.
+4. **Choose the target scope.** Select which observed database role the new PostgreSQL baseline represents, or retain an independent baseline. Inspect every component's included, replaced, omitted or unsupported disposition and the finding-to-target summary.
+5. **Approve explicitly.** Acknowledge baseline assumptions, scope limitations and unresolved questions. Approval is bound to the exact graph and target revisions; saved changes invalidate it and previous artifacts.
+6. **Generate and validate.** Render version-controlled Terraform templates. Run actual formatting, offline initialization and validation through GitHub Actions or local Docker, then download the results and audit files.
 
-## Release 0.3 — explicit scope and unresolved questions
+## Where Meta AI is used
 
-Release 0.3.1 also replaces the static "live access unverified" label with separate text/image request results for the current session. Successful calls show verified, failures show the last request failed, and new sessions or host restarts reset to not tested. Key presence alone never counts as verification.
+The Meta Model API performs the **multimodal diagram-to-graph extraction**. The client uses the configured model (`muse-spark-1.3` by default), validates its structured response, and retains evidence and provenance for human inspection.
 
-[Public demo](https://adr.sathishkannan.com) · [Deployment configuration](docs/RENDER_DEMO.md)
+Risk checks, target construction and Terraform rendering are implemented in Python. Model output cannot provide executable commands, arbitrary Terraform resources or template names. This separates AI interpretation from the constrained infrastructure-generation path.
 
-The saved graph preview shows component counts and directed connections. Review now checks service-level control relationships and retains all unresolved observations. Before approval, every observed component is classified as included, replaced, omitted or unsupported by the fixed baseline. Separate acknowledgments cover scope/simplifications and open questions. These are enforced in the service and optional API, not only in the UI.
+Images are validated and resized before being sent inline to Meta. The service does not write uploaded images to disk or log API keys. Provider-side handling follows Meta's terms. See [Meta integration details](docs/META_INTEGRATION.md) for the API contract and the original development verification record.
 
-Downloads include `component-scope.json`, `open-questions.json`, `control-coverage.json` and `corrected-graph.dot`, alongside the ADR and schema-v2 traceability manifest. The complex CCM fixture reproduces a supplied live extraction: 14 components, 12 connections, two boundaries and five unknowns. Its five confirmed findings are retained; six unverified coverage/resilience/policy questions are now surfaced. Fixture replay does not make a new live Meta call.
+## Try the demo
 
-## Local demo package
+Open **[adr.sathishkannan.com](https://adr.sathishkannan.com/)**.
 
-Start with [DEMO_QUICKSTART.md](DEMO_QUICKSTART.md). Windows launchers, Linux/macOS launcher, offline readiness inventory, four-diagram workflow verification, and a GitHub publishing utility are included. Graph/target edits awaiting save block downstream actions; validator runtime errors still produce a downloadable failure report.
+- **Fixture example:** choose one of four synthetic examples to explore review, approval and downloads without an API key. Fixture replay does not make a live AI call.
+- **Live Meta extraction:** the owner must configure the Meta key and provide the private demo code. Upload a diagram, inspect the extraction, save any truthful corrections, and continue through review and approval.
+- **Terraform validation:** after generation, download `validation-request.json` and use **Open Terraform validation workflow**. Run it on `main` with that JSON; repository write access is required. Blank input validates only a synthetic complex fixture. [Step-by-step instructions](docs/TARGET_VALIDATION.md).
 
-## Current acceptance status
+The free Render host handles the interactive demo and artifact generation. Its download correctly reports **`not_run`** because Terraform does not execute there. GitHub Actions creates a **separate validated ZIP** with the actual result. The app never automatically submits architecture data to GitHub.
 
-For the lightweight public preview on Render Free, see [docs/RENDER_DEMO.md](docs/RENDER_DEMO.md). It keeps Terraform execution disabled, reports `not_run`, and requires an owner-configured API key and private demo code for live requests. Local Docker remains the complete validation environment.
+Sessions are temporary and may reset when the free host sleeps. Keep API keys and the private demo code out of recordings and version control.
 
-This is an implemented P0 candidate, **not a completed submission**. Supplied live runs demonstrate text/image access and a complex graph matching its reference. Clean Docker validation passed in release CI, and the supplied live complex target passed the external GitHub validator. The final live walkthrough with a meaningful human correction and demo recording remains outstanding. See [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md) for exact results. The supplied historical fixture walkthrough must not be presented as a current live Meta demonstration.
+## Complex-diagram demonstration
 
-## Start locally (recommended: Docker Desktop, Linux containers, x86_64)
+The supplied complex CCM diagram contains **14 components and 12 connections**, including independent application services, two PostgreSQL databases, a queue, object storage and shared controls.
+
+![Complex CCM architecture used for the demonstration](examples/complex-ccm.png)
+
+The supplied live run identified **five confirmed findings**, including the legacy database's direct Internet exposure and missing failover, and **six unverified control or resilience findings**. Its approved baseline passed Terraform validation with **zero errors and zero warnings**.
+
+The current UI lets the reviewer select `legacy_postgresql` as the role represented by the new private Multi-AZ RDS. The summary then distinguishes:
+
+| Observed issue | Proposed baseline measure | Remaining limitation |
+| --- | --- | --- |
+| Public legacy database | Private RDS with application-only PostgreSQL access | Existing database and data remain unchanged; no migration is performed. |
+| Missing legacy database failover | Multi-AZ enabled on the new RDS | Recovery objectives and operational testing still need confirmation. |
+| Single-instance independent services | Outside the fixed template's generated scope | One illustrative ASG does not implement or consolidate those services. |
+| Unverified shared controls | Explicitly retained as unresolved or partially addressed | A control box or successful Terraform validation does not prove effective coverage. |
+
+**[Download the validated live sample and read its provenance notes](docs/evidence/README.md).** This historical sample predates the database-role selector and is labelled accordingly; it is not a fresh validation of your current target.
+
+## What the AWS baseline includes
+
+- A two-Availability-Zone VPC with public ALB, private application and isolated database subnets.
+- An HTTP Application Load Balancer and an EC2 Auto Scaling Group with at least two instances.
+- Private, encrypted Multi-AZ RDS PostgreSQL, managed master credentials, seven-day backups and deletion protection.
+- Scoped ALB-to-application-to-database security groups and an IMDSv2-required launch template.
+- Resource-to-decision references for all **26 generated Terraform resources**.
+
+**Outside the generated scope:** independent application/worker implementations, queues, object storage, production TLS, application authentication, monitoring integrations, application packaging, IAM access to managed credentials, NAT/endpoints and data migration. Private instances require additional integration before the application can function. Azure and Google Cloud templates are not implemented.
+
+## Run locally
+
+Use Docker Desktop with Linux/amd64 containers, or Docker on an x86-64 Linux host.
 
 ```bash
 cp .env.example .env
-# Set MODEL_API_KEY in .env to your Meta Model API key.
+# For live extraction, fill MODEL_API_KEY in .env. Never commit the real key.
 docker compose up --build
 ```
 
-Open http://localhost:8501. Fixture mode needs no Meta key; the build needs internet to install pinned dependencies and prepare the provider mirror. The image build deliberately fails if clean, non-root, IP-blocked Terraform initialization and validation cannot pass. The AWS provider is unpacked at build time so runtime initialization links it from the read-only mirror without extracting its approximately 674 MiB binary into the temporary filesystem. Run Docker Desktop with Linux/amd64 containers. ARM images are intentionally unsupported in v1.
+Open **http://localhost:8501**. Fixtures need no Meta key. The first build needs Internet access to install dependencies and prepare the pinned Terraform/provider mirror. Local Docker provides the full validation flow.
 
-Compose limits the container to 2 CPUs, 2 GiB memory and 128 processes, drops capabilities, disables privilege escalation, uses a read-only root filesystem, and binds the UI to localhost. The application requires network access for Meta; the **validator subprocess and its descendants** have IP socket creation blocked by libseccomp. Unix sockets remain available for provider RPC. This is a restriction around trusted templates, not a general hostile-code sandbox.
-
-### Complete the workflow
-
-1. Select **Live Meta extraction**, optionally test text connectivity, and upload one PNG/JPEG (≤5 MB, ≤20 megapixels). Images are verified, resized to ≤1600 px, stripped of metadata, passed inline, and never written to disk by the service. The file widget is reset on successful extraction.
-2. Inspect the original extraction. Correct the editable component/connection tables, or use Quick label correction. Save corrections; changed records become `user_corrected`. Duplicate IDs, invalid enums and dangling references are rejected atomically. Boundaries and unresolved questions can be edited as JSON.
-3. Run architecture review. Six mandatory checks plus backup coverage, queue resilience and object-storage policy questions distinguish confirmed evidence from unverified coverage. Control links are assessed per service; even a shown link does not prove effective enforcement. Inspect all open questions.
-4. Review the separate target, settings, decisions and component scope. Acknowledge simplifications, unsupported roles and unresolved questions, then explicitly approve that exact revision. Target changes and graph corrections invalidate approval and generated artifacts.
-5. Generate. Read the structured per-stage results, inspect the resource-to-decision manifest and download the ZIP even if validation is failed or unavailable. Sessions and artifacts expire after one hour; background expiry clears in-memory observations/artifacts. No persistent accounts or queues exist.
-
-The target is deliberately narrow: ALB, private ASG instances, isolated encrypted Multi-AZ PostgreSQL, managed database password, seven-day backups. It leaves TLS, authentication/authorization, monitoring, an application AMI, IAM credential access and application deployment unresolved. Private app subnets have no NAT or VPC endpoints. Read the ADR before interpreting the target as a runnable application.
-
-### Tests and optional Python-only UI
+For a Python-only UI and tests:
 
 ```bash
 python -m venv .venv
@@ -71,75 +95,38 @@ python -m pytest -q
 python -m streamlit run streamlit_app.py
 ```
 
-Python-only mode supports fixtures, live extraction, editing, review and downloads. Full validator support requires Linux, libseccomp, non-root subprocess execution, Terraform 1.9.8 and a prepared mirror. On Windows, use Docker Desktop for validation. Missing dependencies are reported as `not_run`, never `passed`.
+Python-only mode supports extraction, editing, review and downloads. Validation reports `not_run` when the restricted Linux toolchain is unavailable. See [local quickstart](DEMO_QUICKSTART.md) and [hosted deployment guide](docs/RENDER_DEMO.md).
 
-For a manually prepared Linux toolchain, `scripts/build_mirror.py` is a **build-time-only** networked dependency installer; `TOOLCHAIN_ROOT` selects its output parent. Set `TERRAFORM_BIN`, `TERRAFORM_MIRROR` and `TERRAFORM_LOCK_FILE` to those trusted build outputs. The repository includes a genuine AWS 5.100.0 lock file obtained from HashiCorp's signed package installation; the Docker build independently creates its own lock and mirror.
+## Validation and traceability
 
-### Live acceptance
+Terraform **1.9.8** and AWS provider **5.100.0** are pinned. The Docker validator runs as non-root, uses the bundled provider mirror, blocks IP sockets in validation subprocesses, and has bounded runtime and output. The GitHub validation workflow additionally disables container networking and uses a read-only root filesystem and resource limits. It runs no cloud provisioning commands and needs no AWS credentials.
 
-```bash
-# Set MODEL_API_KEY in the project .env, or export it in this terminal.
-python scripts/live_acceptance.py examples/single-server.png
-```
+A validation request contains graph, target, approval and audit metadata—not arbitrary Terraform. The workflow regenerates trusted templates and verifies the revisions and expected Terraform/lock hashes. `validation-context.json` records request and output hashes so the report can be matched to the approved target. See [validation instructions](docs/TARGET_VALIDATION.md) and [mirror trust and formatting notes](docs/evidence/README.md).
 
-The UI and this script read only MODEL_API_KEY and META_MODEL from the project .env; existing nonempty terminal values take precedence. The script makes actual text and image requests; it exits nonzero on failure. It saves only sanitized status metadata and the validated graph under `acceptance/`. Repeat for `public-database.png` and `redundant-private.png`. Fixtures with matching JSON are for rule tests and recovery; they do not prove extraction quality. Check the real extracted graphs manually against every diagram.
+| Download contents | Purpose |
+| --- | --- |
+| Terraform files and `.terraform.lock.hcl` | The constrained AWS baseline and pinned provider dependency. |
+| Original/corrected graphs and `corrections.json` | Preserve observations and human revision history. |
+| Findings, scope, questions, coverage and `remediation-summary.json` | Show what is known, proposed, unsupported and unresolved. |
+| Approved target, `ADR.md` and `traceability.json` | Bind generated resources to acknowledged decisions and revisions. |
+| Validation request, report and external validation context | Distinguish generated output from actual validation evidence. |
 
-Meta's documented API and the checked model are recorded in [docs/META_INTEGRATION.md](docs/META_INTEGRATION.md). Entitlement and live compatibility remain account-dependent. No third-party inference host is silently substituted.
+## Implementation and verification
 
-### Offline runtime verification
+| Layer | Technology |
+| --- | --- |
+| Interactive review | Streamlit |
+| Diagram interpretation | Meta Model API |
+| Graph validation and workflow | Python, Pydantic |
+| Infrastructure generation | Version-controlled Jinja2 templates, Terraform AWS provider |
+| Isolated validation and CI | Docker, libseccomp, GitHub Actions |
+| Public demo hosting | Render Free |
 
-```bash
-docker build -t architecture-reviewer:local .
-docker run --rm --network=none --cpus=2 --memory=2g --pids-limit=128 \
-  --cap-drop=ALL --security-opt=no-new-privileges \
-  architecture-reviewer:local python scripts/offline_smoke.py
-```
+The latest code checks passed **122 tests, with one skipped** on GitHub's runner. Docker initialization/validation and all four fixture workflows passed. The separate approved-target workflow also passed for the complex fixture with the legacy database role selected. These checks do not replace manual inspection of live extraction or the final demo recording.
 
-This repeats the actual runtime validator against a new private workspace, with no cloud credentials and no container network. Runtime stages are version check, format, format check, backend-free read-only-lock init and `validate -json`. A filesystem mirror is the only provider installation method; no `direct` stanza exists. One file lock limits concurrent executions across local processes. All stages share a 180-second wall-clock budget and 64 KiB output budget. Timeouts/output overflow terminate the whole process group. Validation processes refuse root and fail closed if the network filter is unavailable.
+- [Code and Docker checks](https://github.com/sathishkannan-labs/Architecture-Diagram-Reviewer/actions/runs/41846569716)
+- [Approved-target validation run](https://github.com/sathishkannan-labs/Architecture-Diagram-Reviewer/actions/runs/41844339463)
+- [Detailed implementation history and remaining acceptance work](IMPLEMENTATION_STATUS.md)
+- [Final recording checklist](docs/RECORDING.md)
 
-### Three-diagram fixture verification
-
-```bash
-python scripts/doctor.py
-python scripts/verify_workflow.py --output .local-checks
-# Full Docker gate, including actual initialization and validation:
-docker run --rm --network=none --cpus=2 --memory=2g --pids-limit=128 \
-  --cap-drop=ALL --security-opt=no-new-privileges \
-  architecture-reviewer:local python scripts/verify_workflow.py --require-validation
-```
-
-The fixture verifier checks all four diagrams, records a simulated correction, acknowledges component scope/open questions, checks 26 resource decision references, ZIP contents and approval invalidation. Its JSON always declares fixture mode and live acceptance as not run. `--require-validation` exits nonzero if actual validation is unavailable.
-
-### Optional local FastAPI adapter
-
-```bash
-python -m uvicorn archreview.api:app --host 127.0.0.1 --port 8000
-```
-
-Use `/docs`: create a fixture session or extract an image; use its opaque token as `Authorization: Bearer ...`. Edit, review, approve with the displayed target revision, generate and download. FastAPI calls the same service as Streamlit. It is not required for the default image. Keep it bound to localhost. There is no public production authentication/rate-limit boundary in v1.
-
-## Artifact contents
-
-- `main.tf`, `versions.tf`, `variables.tf`, `outputs.tf`, genuine `.terraform.lock.hcl`
-- `traceability.json` mapping every resource address to an approved decision
-- `ADR.md`, `approved-target.json`, `original-extraction.json`, `corrected-graph.json`
-- `corrections.json`, `findings.json`, `validation-report.json`, generated `README.md`
-
-Templates are packaged, version-controlled Jinja2 files. Neither image text nor model responses can supply resource definitions, Terraform text, commands, template names or executable content. Resource identifiers and values come from a constrained target schema.
-
-## GitHub and submission
-
-A local Git repository and history are included in the delivery as `repository.bundle`. No remote repository has been created or pushed. Create an empty GitHub repository in your account/organization, then run from the extracted project folder:
-
-```bash
-# Inspect/prepare the destination without pushing:
-python scripts/publish.py --repo https://github.com/YOUR_ACCOUNT/YOUR_REPOSITORY.git
-# Publish with your normal Git credentials:
-python scripts/publish.py --repo https://github.com/YOUR_ACCOUNT/YOUR_REPOSITORY.git --push
-```
-
-The utility restores the packaged history if needed, checks for uncommitted edits, uses a separate `publish` remote, and never force-pushes. Normal non-fast-forward protection applies if the destination already has commits. CI uploads Python results and offline validation reports. No Meta key is used in CI.
-
-To create another release from a clean Git working tree, run `python scripts/make_release.py`. Verify a downloaded release with `python scripts/verify_release.py /path/to/architecture-diagram-reviewer-final.zip`.
-
-See [docs/DEMO.md](docs/DEMO.md) for the required live recording and [docs/ACCEPTANCE.md](docs/ACCEPTANCE.md) for remaining gates. CI checks Python tests and builds/runs the complete offline Docker toolchain. Render hosting is deliberately deferred until local M3 passes; no hosted validation is offered.
+The optional [local FastAPI adapter](archreview/api.py) exposes the same workflow for developers. It is intended for localhost use, not as a publicly authenticated production API.
