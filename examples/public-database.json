@@ -1,0 +1,65 @@
+{
+  "components": [
+    {
+      "id": "internet",
+      "type": "internet",
+      "label": "Internet",
+      "evidence": "Internet label",
+      "confidence": null,
+      "source": "observed",
+      "exposure": "unknown",
+      "instances": null,
+      "failover": "unknown"
+    },
+    {
+      "id": "app",
+      "type": "application_server",
+      "label": "Application",
+      "evidence": "Application x1, public",
+      "confidence": null,
+      "source": "observed",
+      "exposure": "public",
+      "instances": 1,
+      "failover": "unknown"
+    },
+    {
+      "id": "db",
+      "type": "database",
+      "label": "PostgreSQL",
+      "evidence": "PostgreSQL, public, failover absent",
+      "confidence": null,
+      "source": "observed",
+      "exposure": "public",
+      "instances": null,
+      "failover": "absent"
+    }
+  ],
+  "connections": [
+    {
+      "source": "app",
+      "target": "db",
+      "evidence": "Application arrow to PostgreSQL",
+      "confidence": null,
+      "provenance": "observed"
+    },
+    {
+      "source": "internet",
+      "target": "app",
+      "evidence": "Internet arrow to application",
+      "confidence": null,
+      "provenance": "observed"
+    },
+    {
+      "source": "internet",
+      "target": "db",
+      "evidence": "Direct Internet arrow to public PostgreSQL",
+      "confidence": null,
+      "provenance": "observed"
+    }
+  ],
+  "boundaries": [],
+  "unknowns": [
+    "Authentication, secrets management and monitoring are not shown."
+  ],
+  "assumptions": []
+}
