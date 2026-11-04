@@ -11,7 +11,7 @@ provider "aws" {
   region = "{{ target.region }}"
   default_tags {
     tags = {
-      Project = "{{ target.name }}"
+      Project          = "{{ target.name }}"
       ApprovedRevision = "{{ revision }}"
     }
   }

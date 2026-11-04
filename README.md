@@ -1,8 +1,16 @@
 # Architecture Diagram Reviewer
 
+**Architecture risk reviewer with an illustrative AWS remediation baseline.** It generates a fixed ALB/ASG/RDS target, not a complete diagram-to-cloud conversion. Independent services, queues, object storage and application integration remain outside its generated scope.
+
 Local human-reviewed diagram → evidence-based risk review → approved two-AZ AWS target → traceable Terraform → offline validation → ZIP.
 
 **Terraform validation does not prove security, provisioning success, application readiness, or production suitability. No AWS plan or apply is run.**
+
+## Release 0.5 — final demo preparation
+
+A finding-to-target summary distinguishes changes in the new baseline from unresolved or unsupported observed roles. Database-role selection is recorded in the approved target; changing it revokes approval, artifacts and validation requests. Selecting a role does not migrate data or modify existing resources. Other database roles stay unsupported.
+
+[Validated complex sample and provenance notes](docs/evidence/README.md) · [Recording checklist](docs/RECORDING.md). Downloads now include `remediation-summary.json`.
 
 ## Release 0.4 — compact review and approved-target validation
 
@@ -28,7 +36,7 @@ Start with [DEMO_QUICKSTART.md](DEMO_QUICKSTART.md). Windows launchers, Linux/ma
 
 For the lightweight public preview on Render Free, see [docs/RENDER_DEMO.md](docs/RENDER_DEMO.md). It keeps Terraform execution disabled, reports `not_run`, and requires an owner-configured API key and private demo code for live requests. Local Docker remains the complete validation environment.
 
-This is an implemented P0 candidate, **not a completed submission**. Supplied live runs demonstrate text/image access and a complex graph matching its reference. Clean Docker validation and the final live walkthrough with a human correction remain unverified. See [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md) for exact results. The supplied historical fixture walkthrough must not be presented as a current live Meta demonstration.
+This is an implemented P0 candidate, **not a completed submission**. Supplied live runs demonstrate text/image access and a complex graph matching its reference. Clean Docker validation passed in release CI, and the supplied live complex target passed the external GitHub validator. The final live walkthrough with a meaningful human correction and demo recording remains outstanding. See [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md) for exact results. The supplied historical fixture walkthrough must not be presented as a current live Meta demonstration.
 
 ## Start locally (recommended: Docker Desktop, Linux containers, x86_64)
 

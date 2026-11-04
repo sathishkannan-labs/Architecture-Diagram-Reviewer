@@ -104,6 +104,7 @@ class OpenQuestion(StrictModel):
 
 class TargetArchitecture(StrictModel):
     graph_revision: str
+    database_source_id: str | None = Field(default=None, pattern=r'^[a-z][a-z0-9_]{0,63}$')
     region: Literal['us-east-1', 'us-west-2', 'eu-west-1'] = 'us-east-1'
     name: str = Field(default='archreview-demo', pattern=r'^[a-z][a-z0-9-]{2,19}$')
     desired_capacity: int = Field(default=2, ge=2, le=4)

@@ -12,6 +12,7 @@ def execute(request_path, output_path):
         from archreview.service import Workflow
         workflow=Workflow(load_fixture('complex-ccm'))
         workflow.run_review()
+        workflow.configure_target(database_source_id='legacy_postgresql')
         workflow.approve(workflow.target.revision(),acknowledge_scope=True,acknowledge_unknowns=True)
         data=workflow.validation_request().encode()
     if len(data)>MAX_REQUEST_BYTES:raise ValueError('Request exceeds the allowed size.')

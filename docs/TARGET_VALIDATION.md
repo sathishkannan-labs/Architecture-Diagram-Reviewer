@@ -59,3 +59,7 @@ workflow demo limit should use the existing local full-workflow path instead.
 
 Validation establishes configuration validity only. It does not prove security,
 successful provisioning, application readiness or production suitability.
+
+## Sample and provenance
+
+See [validated sample evidence](evidence/README.md) for a downloadable historical live run, mirror trust boundaries, and pre-/post-format hash explanations. New target settings or a database-role selection require fresh approval and a fresh request; historical requests may be rejected by the current schema/templates.

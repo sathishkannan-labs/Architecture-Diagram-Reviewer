@@ -25,6 +25,7 @@ class Settings(BaseModel):
     region: str
     name: str
     desired_capacity: int
+    database_source_id: str | None = None
 
 def _store(workflow):
     with _guard:

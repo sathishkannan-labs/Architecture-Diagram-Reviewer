@@ -2,7 +2,7 @@
 from .models import ScopeItem, OpenQuestion
 
 
-def target_scope(graph):
+def target_scope(graph, database_source_id=None):
     apps = [c for c in graph.components if c.type in ('web_server', 'application_server')]
     dbs = [c for c in graph.components if c.type == 'database']
     rows = []
@@ -20,9 +20,10 @@ def target_scope(graph):
             why = ('One illustrative ASG replaces this application role; software, IAM and deployment are not configured.' if len(apps) == 1 else
                 'Independent application/worker roles are not generated. The single illustrative ASG does not implement or consolidate these services.')
         elif kind == 'database':
-            status = 'replaced' if len(dbs) == 1 else 'unsupported'
+            selected = c.id == database_source_id or (database_source_id is None and len(dbs) == 1)
+            status = 'replaced' if selected else 'unsupported'
             ids = ['D-DB']
-            why = ('One new Multi-AZ PostgreSQL baseline replaces this database role; data migration is not implemented.' if len(dbs) == 1 else
+            why = ('One new Multi-AZ PostgreSQL baseline represents this selected database role; existing infrastructure and data are unchanged. Data migration is not implemented.' if selected else
                 'Multiple database roles cannot be preserved by the single-RDS template. No source database or migration is selected automatically.')
         elif kind == 'backup':
             status, ids, why = 'replaced', ['D-DB'], 'Only seven-day backups on the new RDS are configured; the observed backup system, schedules and restore testing are not reproduced.'

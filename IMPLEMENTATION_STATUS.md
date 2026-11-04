@@ -1,3 +1,14 @@
+# Release 0.5 — final recording preparation
+
+- Added an exported finding-to-target summary and compact confirmed-findings UI. Outcomes distinguish new-baseline measures, partial measures and unresolved/out-of-scope findings; no existing-system remediation is claimed.
+- Added observed database-role selection. The selected ID is part of the target revision, canonical scope and exported request; changing it invalidates approval/artifacts. Non-selected databases remain unsupported. This does not select or execute a data migration.
+- D-NET intentionally links AR-003 because isolated subnets are a mitigation for database exposure; its description now explains the link.
+- Templates now pass Terraform 1.9.8 fmt-check before formatting for all four fixtures. Existing report contexts retain pre-/post-format hashes.
+- Published historical release 0.4 live-Meta validation evidence, explicitly labelled as historical, plus provider-mirror trust notes. No claim of signature verification during offline init.
+- README and app lead with the narrow illustrative AWS scope. docs/RECORDING.md covers the live correction, role choice, approval and external validation sequence.
+- Local tests: 119 passed, four skipped. Release 0.4 CI: 117 passed, one skipped; offline Docker and owner-triggered sample workflow passed. Release 0.5 CI and deployment are tracked separately.
+- Remaining: final meaningful human clarification and live recording, then submission. No plan/apply or migration has run.
+
 # Release 0.4 additions — November 4, 2026
 
 - Compact topic grouping preserves every original question and its IDs. The user's latest 12 source entries become four display topics; raw approval data is unchanged.

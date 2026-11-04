@@ -91,10 +91,12 @@ class Workflow:
         self.expire()
         if self.target is None:
             raise ValueError('Review the graph first.')
-        allowed = {'region','name','desired_capacity','instance_type','db_instance_class'}
+        allowed = {'region','name','desired_capacity','instance_type','db_instance_class','database_source_id'}
         if set(changes) - allowed:
             raise ValueError('Only supported target settings can be changed.')
         target = TargetArchitecture.model_validate({**self.target.model_dump(), **changes})
+        canonical = propose_target(self.graph, review(self.graph), target.database_source_id)
+        target.scope, target.decisions, target.open_questions = canonical.scope, canonical.decisions, canonical.open_questions
         if target.revision() != self.target.revision():
             self.target = target
             self.approval = self.files = self.report = None

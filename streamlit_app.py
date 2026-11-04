@@ -13,13 +13,16 @@ from archreview.hosting import hosted, live_authorized
 from archreview.visualization import graph_dot
 from archreview.coverage import control_coverage
 from archreview.presentation import group_questions
+from archreview.remediation import remediation_summary
 from archreview.validation_request import WORKFLOW_URL
 
 load_local_env(Path(__file__).with_name(".env"))
 
 st.set_page_config(page_title='Architecture Diagram Reviewer',page_icon='🏗️',layout='wide')
 st.title('Architecture Diagram Reviewer')
+st.caption('Architecture risk reviewer with an illustrative AWS remediation baseline.')
 st.caption('Extract → correct → review → approve → generate → validate → download')
+st.link_button('Inspect a validated complex sample', 'https://github.com/sathishkannan-labs/Architecture-Diagram-Reviewer/blob/main/docs/evidence/README.md')
 st.warning(ValidationReport().limitations)
 st.sidebar.subheader('Demo status')
 st.sidebar.write('Meta key: ' + ('configured' if os.getenv('MODEL_API_KEY') else 'not configured'))
@@ -171,13 +174,24 @@ st.caption('The corrected observations stay separate. The target adds a two-AZ A
 region=st.selectbox('Region',['us-east-1','us-west-2','eu-west-1'],index=['us-east-1','us-west-2','eu-west-1'].index(w.target.region),key='region_'+w.target.revision())
 target_name=st.text_input('Name',w.target.name,key='name_'+w.target.revision())
 capacity=st.number_input('Desired application instances',2,4,w.target.desired_capacity,key='capacity_'+w.target.revision())
-pending_target=(region!=w.target.region or target_name!=w.target.name or capacity!=w.target.desired_capacity)
+db_ids=[c.id for c in w.graph.components if c.type=='database']
+db_options=[None]+db_ids
+db_source=st.selectbox('Database role represented by the new PostgreSQL baseline',db_options,index=db_options.index(w.target.database_source_id),format_func=lambda value: ('Independent new database; no observed database selected' if len(db_ids)!=1 else 'New baseline for the sole observed database role') if value is None else value+' · '+next(c.label for c in w.graph.components if c.id==value),key='db_source_'+w.target.revision())
+st.caption('Role selection is not a migration instruction. Other databases remain outside scope; existing data and infrastructure are unchanged.')
+pending_target=(region!=w.target.region or target_name!=w.target.name or capacity!=w.target.desired_capacity or db_source!=w.target.database_source_id)
 if pending_target:st.info('Save target settings before approving or generating this target.')
 if st.button('Save target settings (invalidates approval)',disabled=pending_edits):
-    try:w.configure_target(region=region,name=target_name,desired_capacity=capacity);st.rerun()
+    try:w.configure_target(region=region,name=target_name,desired_capacity=capacity,database_source_id=db_source);st.rerun()
     except ValueError:st.error('Use a 3–20 character lowercase target name, beginning with a letter.')
 with st.expander('Target decisions and evidence (advanced)'):
     st.table([{'ID':d.id,'Proposed change':d.description,'Observed components':', '.join(d.component_ids),'Finding references':', '.join(d.finding_ids) or 'Baseline assumption'} for d in w.target.decisions])
+st.subheader('Finding → proposed target change')
+impact=remediation_summary(w.graph,w.target,w.findings)
+confirmed=[r for r in impact if r['finding_status']=='confirmed']
+st.caption('Saved target settings only. Addressed means in the new baseline; no existing system is modified.')
+if confirmed:st.dataframe([{'Finding':r['rule']+' · '+r['observed_problem'],'Severity':r['severity'],'Components':', '.join(r['components']),'Target outcome':r['target_status'],'Proposed change':r['proposed_change']} for r in confirmed],hide_index=True,use_container_width=True)
+with st.expander('All finding outcomes and remaining work'):
+    st.dataframe(impact,hide_index=True,use_container_width=True)
 st.subheader('Component scope and simplifications')
 st.warning('This fixed target is a new illustrative baseline. It does not reproduce the entire uploaded architecture or migrate existing services/data. Unsupported roles are not automatically merged into the ASG or RDS.')
 labels={c.id:c.label for c in w.graph.components}

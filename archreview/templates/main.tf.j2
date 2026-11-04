@@ -1,8 +1,8 @@
 # Decision: D-NET
 resource "aws_vpc" "main" {
-  cidr_block = "10.40.0.0/16"
+  cidr_block           = "10.40.0.0/16"
   enable_dns_hostnames = true
-  enable_dns_support = true
+  enable_dns_support   = true
 }
 # Decision: D-NET
 resource "aws_internet_gateway" "main" {
@@ -12,9 +12,9 @@ resource "aws_internet_gateway" "main" {
 {% for az, index in [('a',0), ('b',1)] %}
 # Decision: D-NET
 resource "aws_subnet" "{{ tier }}_{{ az }}" {
-  vpc_id = aws_vpc.main.id
-  cidr_block = "10.40.{{ base + index }}.0/24"
-  availability_zone = "{{ target.region }}{{ az }}"
+  vpc_id                  = aws_vpc.main.id
+  cidr_block              = "10.40.{{ base + index }}.0/24"
+  availability_zone       = "{{ target.region }}{{ az }}"
   map_public_ip_on_launch = false
 }
 {% endfor %}
@@ -35,7 +35,7 @@ resource "aws_route_table" "private" {
 {% for az in ['a','b'] %}
 # Decision: D-NET
 resource "aws_route_table_association" "{{ tier }}_{{ az }}" {
-  subnet_id = aws_subnet.{{ tier }}_{{ az }}.id
+  subnet_id      = aws_subnet.{{ tier }}_{{ az }}.id
   route_table_id = aws_route_table.{{ 'public' if tier == 'public' else 'private' }}.id
 }
 {% endfor %}
@@ -43,63 +43,63 @@ resource "aws_route_table_association" "{{ tier }}_{{ az }}" {
 # Decision: D-APP
 resource "aws_security_group" "alb" {
   name_prefix = "{{ target.name }}-alb-"
-  vpc_id = aws_vpc.main.id
+  vpc_id      = aws_vpc.main.id
   ingress {
-    protocol = "tcp"
-    from_port = 80
-    to_port = 80
+    protocol    = "tcp"
+    from_port   = 80
+    to_port     = 80
     cidr_blocks = ["0.0.0.0/0"]
   }
   egress {
-    protocol = "tcp"
-    from_port = 8080
-    to_port = 8080
+    protocol    = "tcp"
+    from_port   = 8080
+    to_port     = 8080
     cidr_blocks = [aws_subnet.app_a.cidr_block, aws_subnet.app_b.cidr_block]
   }
 }
 # Decision: D-APP
 resource "aws_security_group" "app" {
   name_prefix = "{{ target.name }}-app-"
-  vpc_id = aws_vpc.main.id
+  vpc_id      = aws_vpc.main.id
   ingress {
-    protocol = "tcp"
-    from_port = 8080
-    to_port = 8080
+    protocol        = "tcp"
+    from_port       = 8080
+    to_port         = 8080
     security_groups = [aws_security_group.alb.id]
   }
   egress {
-    protocol = "tcp"
-    from_port = 5432
-    to_port = 5432
+    protocol    = "tcp"
+    from_port   = 5432
+    to_port     = 5432
     cidr_blocks = [aws_subnet.db_a.cidr_block, aws_subnet.db_b.cidr_block]
   }
 }
 # Decision: D-DB
 resource "aws_security_group" "db" {
   name_prefix = "{{ target.name }}-db-"
-  vpc_id = aws_vpc.main.id
+  vpc_id      = aws_vpc.main.id
   ingress {
-    protocol = "tcp"
-    from_port = 5432
-    to_port = 5432
+    protocol        = "tcp"
+    from_port       = 5432
+    to_port         = 5432
     security_groups = [aws_security_group.app.id]
   }
 }
 # Decision: D-APP
 resource "aws_lb" "app" {
-  name = "{{ target.name }}-alb"
-  load_balancer_type = "application"
-  internal = false
-  subnets = [aws_subnet.public_a.id, aws_subnet.public_b.id]
-  security_groups = [aws_security_group.alb.id]
+  name                       = "{{ target.name }}-alb"
+  load_balancer_type         = "application"
+  internal                   = false
+  subnets                    = [aws_subnet.public_a.id, aws_subnet.public_b.id]
+  security_groups            = [aws_security_group.alb.id]
   drop_invalid_header_fields = true
 }
 # Decision: D-APP
 resource "aws_lb_target_group" "app" {
-  name = "{{ target.name }}-tg"
-  port = 8080
+  name     = "{{ target.name }}-tg"
+  port     = 8080
   protocol = "HTTP"
-  vpc_id = aws_vpc.main.id
+  vpc_id   = aws_vpc.main.id
   health_check {
     path = "/health"
   }
@@ -107,27 +107,27 @@ resource "aws_lb_target_group" "app" {
 # Decision: D-APP
 resource "aws_lb_listener" "http" {
   load_balancer_arn = aws_lb.app.arn
-  port = 80
-  protocol = "HTTP"
+  port              = 80
+  protocol          = "HTTP"
   default_action {
-    type = "forward"
+    type             = "forward"
     target_group_arn = aws_lb_target_group.app.arn
   }
 }
 # Decision: D-APP
 resource "aws_launch_template" "app" {
-  name_prefix = "{{ target.name }}-"
-  image_id = var.ami_id
-  instance_type = "{{ target.instance_type }}"
+  name_prefix            = "{{ target.name }}-"
+  image_id               = var.ami_id
+  instance_type          = "{{ target.instance_type }}"
   vpc_security_group_ids = [aws_security_group.app.id]
   metadata_options {
-    http_tokens = "required"
+    http_tokens   = "required"
     http_endpoint = "enabled"
   }
   block_device_mappings {
     device_name = "/dev/xvda"
     ebs {
-      encrypted = true
+      encrypted   = true
       volume_size = 8
       volume_type = "gp3"
     }
@@ -135,39 +135,39 @@ resource "aws_launch_template" "app" {
 }
 # Decision: D-APP
 resource "aws_autoscaling_group" "app" {
-  name_prefix = "{{ target.name }}-"
-  min_size = 2
-  max_size = 4
-  desired_capacity = {{ target.desired_capacity }}
+  name_prefix         = "{{ target.name }}-"
+  min_size            = 2
+  max_size            = 4
+  desired_capacity    = {{ target.desired_capacity }}
   vpc_zone_identifier = [aws_subnet.app_a.id, aws_subnet.app_b.id]
-  target_group_arns = [aws_lb_target_group.app.arn]
-  health_check_type = "ELB"
+  target_group_arns   = [aws_lb_target_group.app.arn]
+  health_check_type   = "ELB"
   launch_template {
-    id = aws_launch_template.app.id
+    id      = aws_launch_template.app.id
     version = "$Latest"
   }
 }
 # Decision: D-DB
 resource "aws_db_subnet_group" "db" {
-  name = "{{ target.name }}-db"
+  name       = "{{ target.name }}-db"
   subnet_ids = [aws_subnet.db_a.id, aws_subnet.db_b.id]
 }
 # Decision: D-DB
 resource "aws_db_instance" "postgres" {
-  identifier = "{{ target.name }}-postgres"
-  engine = "postgres"
-  instance_class = "{{ target.db_instance_class }}"
-  allocated_storage = 20
-  storage_type = "gp3"
-  storage_encrypted = true
-  multi_az = true
-  publicly_accessible = false
-  db_subnet_group_name = aws_db_subnet_group.db.name
-  vpc_security_group_ids = [aws_security_group.db.id]
-  username = "archreview"
+  identifier                  = "{{ target.name }}-postgres"
+  engine                      = "postgres"
+  instance_class              = "{{ target.db_instance_class }}"
+  allocated_storage           = 20
+  storage_type                = "gp3"
+  storage_encrypted           = true
+  multi_az                    = true
+  publicly_accessible         = false
+  db_subnet_group_name        = aws_db_subnet_group.db.name
+  vpc_security_group_ids      = [aws_security_group.db.id]
+  username                    = "archreview"
   manage_master_user_password = true
-  backup_retention_period = 7
-  deletion_protection = true
-  skip_final_snapshot = false
-  final_snapshot_identifier = "{{ target.name }}-final"
+  backup_retention_period     = 7
+  deletion_protection         = true
+  skip_final_snapshot         = false
+  final_snapshot_identifier   = "{{ target.name }}-final"
 }

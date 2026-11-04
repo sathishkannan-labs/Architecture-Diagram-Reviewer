@@ -60,16 +60,18 @@ def review(graph: ArchitectureGraph) -> list[Finding]:
     return findings
 
 
-def propose_target(graph: ArchitectureGraph, findings: list[Finding]) -> TargetArchitecture:
+def propose_target(graph: ArchitectureGraph, findings: list[Finding], database_source_id=None) -> TargetArchitecture:
+    if database_source_id is not None and not any(c.id == database_source_id and c.type == 'database' for c in graph.components):
+        raise ValueError('Select an observed database ID or an independent new baseline.')
     ids = [c.id for c in graph.components]
     def decision(id, description, rules, assumption):
         matches = [f for f in findings if f.rule_id in rules]
         return Decision(id=id, description=description,
             component_ids=sorted({cid for f in matches for cid in f.component_ids}) or ids,
             finding_ids=sorted({f.id for f in matches}), baseline_assumption=assumption)
-    return TargetArchitecture(graph_revision=graph.revision(), scope=target_scope(graph),
+    return TargetArchitecture(graph_revision=graph.revision(), database_source_id=database_source_id, scope=target_scope(graph, database_source_id),
       open_questions=open_questions(graph, findings), decisions=[
-        decision('D-NET', 'Two-AZ VPC, public ALB subnets, private application subnets, isolated database subnets.',
+        decision('D-NET', 'Two-AZ VPC, public ALB subnets, private application subnets, isolated database subnets. AR-003 links database exposure to its network-isolation mitigation.',
                  ['AR-003'], 'Baseline: a new IPv4 VPC in the selected AWS region; no existing network is imported.'),
         decision('D-APP', 'Internet-facing HTTP ALB routes to at least two private ASG instances across two AZs.',
                  ['AR-001', 'AR-002'], 'Baseline: illustrative HTTP service; production TLS, application packaging, authentication, and monitoring require additional work.'),
@@ -79,6 +81,6 @@ def propose_target(graph: ArchitectureGraph, findings: list[Finding]) -> TargetA
 
 
 def ensure_target_matches(graph, target):
-    expected = propose_target(graph, review(graph))
+    expected = propose_target(graph, review(graph), target.database_source_id)
     if target.graph_revision != graph.revision() or target.decisions != expected.decisions or target.scope != expected.scope or target.open_questions != expected.open_questions:
         raise ValueError('Target decisions, scope or unresolved questions do not match this reviewed graph.')

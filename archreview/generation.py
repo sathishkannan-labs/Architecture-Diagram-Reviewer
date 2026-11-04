@@ -51,9 +51,16 @@ def render(target, approval, graph, original, corrections, mode):
     files['corrected-graph.dot'] = graph_dot(graph)
     from .review import review
     files['findings.json'] = json.dumps([f.model_dump() for f in review(graph)], indent=2)
+    from .remediation import remediation_summary
+    impact = remediation_summary(graph,target,review(graph))
+    files['remediation-summary.json'] = json.dumps(impact,indent=2)
     files['ADR.md'] = '# ADR: Approved two-AZ AWS baseline\n\n' + DISCLAIMER + '\n\n' + (
         f'Extraction mode: **{mode}**\n\nObserved revision: `{graph.revision()}`\n\n'
         f'Approved target: `{target.revision()}` at {approval.approved_at}\n\n')
+    files['ADR.md'] += 'Database role selection: '+(target.database_source_id or 'no explicit source; sole database role only when unambiguous, otherwise independent baseline')+'. No migration or existing-system change is performed.\n\n'
+    for r in impact:
+        files['ADR.md'] += f"- {r['rule']} ({r['finding_status']}): {r['target_status']}. {r['proposed_change']} {r['remaining_work']}\n"
+    files['ADR.md'] += '\n'
     for d in target.decisions:
         files['ADR.md'] += (f'## {d.id}\n\n{d.description}\n\nObservations: {", ".join(d.component_ids)}. '
             f'Findings: {", ".join(d.finding_ids) or "none"}.\n\n{d.baseline_assumption or ""}\n\n')

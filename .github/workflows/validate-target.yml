@@ -12,6 +12,12 @@ on:
       - '.github/workflows/validate-target.yml'
       - 'archreview/validation_request.py'
       - 'scripts/validate_request.py'
+      - 'archreview/templates/**'
+      - 'archreview/models.py'
+      - 'archreview/review.py'
+      - 'archreview/scope.py'
+      - 'archreview/generation.py'
+      - 'archreview/remediation.py'
 permissions:
   contents: read
 concurrency:
