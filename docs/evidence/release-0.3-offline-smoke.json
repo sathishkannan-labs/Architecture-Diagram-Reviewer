@@ -1,0 +1,36 @@
+{
+  "status": "passed",
+  "stages": [
+    {
+      "stage": "version",
+      "status": "passed",
+      "output": "{\n  \"terraform_version\": \"1.9.8\",\n  \"platform\": \"linux_amd64\",\n  \"provider_selections\": {\n    \"registry.terraform.io/hashicorp/aws\": \"5.100.0\"\n  },\n  \"terraform_outdated\": false\n}\n",
+      "exit_code": 0
+    },
+    {
+      "stage": "fmt",
+      "status": "passed",
+      "output": "main.tf\nvariables.tf\nversions.tf\n",
+      "exit_code": 0
+    },
+    {
+      "stage": "fmt-check",
+      "status": "passed",
+      "output": "",
+      "exit_code": 0
+    },
+    {
+      "stage": "init",
+      "status": "passed",
+      "output": "Initializing provider plugins...\n- Reusing previous version of hashicorp/aws from the dependency lock file\n- Installing hashicorp/aws v5.100.0...\n- Installed hashicorp/aws v5.100.0 (unauthenticated)\n\nTerraform has been successfully initialized!\n",
+      "exit_code": 0
+    },
+    {
+      "stage": "validate",
+      "status": "passed",
+      "output": "{\n  \"format_version\": \"1.0\",\n  \"valid\": true,\n  \"error_count\": 0,\n  \"warning_count\": 0,\n  \"diagnostics\": []\n}\n",
+      "exit_code": 0
+    }
+  ],
+  "limitations": "Terraform validation checks configuration validity only. It does not prove security, successful AWS provisioning, application functionality, or production readiness."
+}

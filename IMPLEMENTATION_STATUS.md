@@ -15,15 +15,15 @@ The public preview is hosted on Render Free. Source: https://github.com/sathishk
 
 ## Verification
 
-- 93 tests passed; four native non-root subprocess tests skipped in this host. New tests cover complex topology, scoped relationships, uncertain controls, explicit acknowledgments, metadata tampering, question retention, UI approval gates and correction invalidation.
-- All four fixture workflows pass correction, review, acknowledgment, approval, generation, ZIP inspection and invalidation. Runtime validation here remains not_run.
+- Local: 93 tests passed; four native non-root subprocess tests skipped in this host. Release CI: 96 passed, one root-specific check skipped on the non-root runner. All native non-root/network/timeout/output checks passed there. New tests cover complex topology, scoped relationships, uncertain controls, explicit acknowledgments, metadata tampering, question retention, UI approval gates and correction invalidation.
+- All four fixture workflows pass correction, review, acknowledgment, approval, generation, ZIP inspection and invalidation. The release Docker CI passed the image build plus actual fmt/fmt-check/offline init/validate for all four fixtures with network=none and resource restrictions. Runtime validation in this development host remains not_run. Reports: docs/evidence/release-0.3-offline-smoke.json and docs/evidence/release-0.3-fixture-verification.json. CI: https://github.com/sathishkannan-labs/Architecture-Diagram-Reviewer/actions/runs/41830185530
 - Previous historical results and fixture video under docs/evidence belong to earlier releases. They are not a recording of the current UI or a completed live acceptance run.
 - The user supplied successful live text/image runs; the complex exported graph matched the test reference exactly. These requests were not independently rerun from this development host.
 
 ## Remaining submission gates
 
-- Actual clean Docker build plus credential-free, non-root, IP-blocked Terraform formatting, offline initialization and validation. Docker is unavailable in this host. Public Render execution remains deliberately disabled and reports not_run.
+- The clean Docker gate passed in release CI. A final user-facing live workflow/video with actual validation still needs recording in a Docker-capable environment. Docker is unavailable in this development host. Public Render execution remains deliberately disabled and reports not_run.
 - Final live demo with a meaningful human clarification, scope/question acknowledgments, target approval and download. The supplied complex export had no recorded corrections.
-- Native Windows launcher execution and final submission materials/video remain to be verified. Remote CI results must be checked separately; local test success is not remote CI success.
+- Native Windows launcher execution and final submission materials/video remain to be verified. Release CI passed at the linked run; this does not establish final video/submission completion.
 
 No AWS plan/apply, arbitrary Terraform/model code execution, multi-service Terraform generation or data migration is implemented. Validation does not prove security, provisioning success, application readiness or production suitability.
