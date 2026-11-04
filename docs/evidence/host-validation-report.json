@@ -1,0 +1,12 @@
+{
+  "status": "not_run",
+  "stages": [
+    {
+      "stage": "runtime",
+      "status": "not_run",
+      "output": "Non-root execution or validation runtime dependencies unavailable. No success is claimed.",
+      "exit_code": null
+    }
+  ],
+  "limitations": "Terraform validation checks configuration validity only. It does not prove security, successful AWS provisioning, application functionality, or production readiness."
+}

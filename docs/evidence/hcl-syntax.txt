@@ -1,0 +1,6 @@
+Static HCL parsing only. This is not Terraform initialization or validation.
+versions.tf: syntax parsed with python-hcl2 7.3.1
+variables.tf: syntax parsed with python-hcl2 7.3.1
+main.tf: syntax parsed with python-hcl2 7.3.1
+outputs.tf: syntax parsed with python-hcl2 7.3.1
+.terraform.lock.hcl: syntax parsed with python-hcl2 7.3.1
