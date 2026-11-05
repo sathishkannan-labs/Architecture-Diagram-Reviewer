@@ -183,3 +183,28 @@ def test_graph_preview_preserves_unicode_without_dot_unicode_escapes():
     assert 'தமிழ் Données 数据 🏗️' in dot
     assert '\\u' not in dot
     assert '\\"quoted\\"' in dot and '\\\\ path\\nnext' in dot
+
+def test_svg_preview_preserves_nodes_edges_and_escapes_labels():
+    import xml.etree.ElementTree as ET
+    from archreview.visualization import graph_svg
+    g=load_fixture('complex-ccm')
+    g.components[0].label='<script>alert("no")</script> தமிழ்'
+    g.connections[0].provenance='inferred'
+    svg=graph_svg(g)
+    root=ET.fromstring(svg)
+    assert len([e for e in root.iter() if e.attrib.get('data-component')])==14
+    edges=[e for e in root.iter() if e.attrib.get('data-connection')]
+    assert len(edges)==12 and edges[0].attrib['stroke-dasharray']=='7 5'
+    assert not any(e.tag.endswith('script') for e in root.iter())
+    assert 'தமிழ்' in svg and '&lt;script&gt;' in svg
+    assert svg==graph_svg(g)
+
+
+def test_svg_handles_cycles_without_inventing_nodes():
+    import xml.etree.ElementTree as ET
+    from archreview.visualization import graph_svg
+    g=load_fixture('single-server')
+    g.connections.append(g.connections[0].model_copy(update={'source':g.components[-1].id,'target':g.components[0].id}))
+    root=ET.fromstring(graph_svg(g))
+    assert len([e for e in root.iter() if e.attrib.get('data-component')])==3
+    assert len([e for e in root.iter() if e.attrib.get('data-connection')])==3

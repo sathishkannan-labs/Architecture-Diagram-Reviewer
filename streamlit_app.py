@@ -10,7 +10,7 @@ from archreview.service import Workflow
 from archreview.editing import edited_graph
 from archreview.config import load_local_env
 from archreview.hosting import hosted, live_authorized, LIVE_BUDGET, PreviewLimit
-from archreview.visualization import graph_dot
+from archreview.visualization import graph_svg
 from archreview.coverage import control_coverage
 from archreview.presentation import group_questions
 from archreview.remediation import remediation_summary
@@ -112,7 +112,8 @@ for column,title,value in zip(counts,['Components','Connections','Boundaries','U
     column.metric(title,value)
 with st.expander('Corrected graph preview', expanded=True):
     st.caption('Saved observations only. Public = red; private = green; unknown = gray. Dashed arrows are inferred. Control links show relationships, not effectiveness.')
-    st.graphviz_chart(graph_dot(w.graph), use_container_width=True)
+    st.image(graph_svg(w.graph), use_container_width=True)
+    st.caption('Simplified layout; inspect the editable tables for complete labels and evidence.')
     if w.graph.boundaries:
         st.dataframe([{'Boundary':b.label,'Components':', '.join(b.component_ids),'Provenance':b.source} for b in w.graph.boundaries],hide_index=True)
 with st.expander('Original extraction (retained for audit)'):
