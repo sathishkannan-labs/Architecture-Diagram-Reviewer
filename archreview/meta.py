@@ -4,9 +4,11 @@ import base64
 import io
 import json
 import os
+import re
 import time
 import warnings
 import httpx
+from pydantic import ValidationError
 from PIL import Image, ImageOps, UnidentifiedImageError
 from .models import ArchitectureGraph
 from .hosting import LIVE_BUDGET, PreviewLimit
@@ -108,16 +110,37 @@ class MetaClient:
                   'Use unknowns for unresolved information. Use inferred provenance for deductions; never use '
                   'user_corrected during extraction. Unknown instances must be null. Schema: '
                   + json.dumps(ArchitectureGraph.model_json_schema()))
-        content = self.completion([
+        messages = [
             {'role': 'system', 'content': prompt},
             {'role': 'user', 'content': [{'type': 'text', 'text': 'Extract this diagram.'},
-                {'type': 'image_url', 'image_url': {'url': 'data:image/jpeg;base64,' + base64.b64encode(resized).decode()}}]}])
-        try:
-            graph = ArchitectureGraph.model_validate_json(content)
-            if any(c.source == 'user_corrected' for c in graph.components) or any(
-                e.provenance == 'user_corrected' for e in graph.connections) or any(
-                b.source == 'user_corrected' for b in graph.boundaries):
-                raise ValueError('Invalid extraction provenance')
-            return graph
-        except ValueError:
-            raise ExtractionError('Extraction did not match the graph schema. No review or files were generated.') from None
+                {'type': 'image_url', 'image_url': {'url': 'data:image/jpeg;base64,' + base64.b64encode(resized).decode()}}]}]
+        for attempt in range(2):
+            # Transport failures and refusals must not trigger schema recovery.
+            content = self.completion(messages)
+            try:
+                return parse_extraction(content)
+            except ValueError as exc:
+                if attempt:
+                    raise ExtractionError('Extraction did not match the graph schema after two attempts. No review or files were generated.') from None
+                errors = 'invalid_provenance'
+                if isinstance(exc, ValidationError):
+                    errors = ', '.join(sorted({e['type'] for e in exc.errors(
+                        include_input=False, include_context=False, include_url=False)})[:8])
+                # Never echo invalid output, labels, or raw validation errors.
+                messages.append({'role': 'user', 'content':
+                    'Previous response failed graph validation (' + errors + '). Re-extract the same image. '
+                    'Correct structure only; never invent facts to satisfy the schema. Preserve uncertainty in unknowns. '
+                    'Use observed or inferred provenance, never user_corrected. Return one JSON object.'})
+
+
+def parse_extraction(content: str) -> ArchitectureGraph:
+    content = content.strip()
+    fenced = re.fullmatch(r'```(?:json)?[ \t]*\r?\n(.*?)\r?\n```', content, flags=re.DOTALL | re.IGNORECASE)
+    if fenced:
+        content = fenced.group(1).strip()
+    graph = ArchitectureGraph.model_validate_json(content)
+    if (any(c.source == 'user_corrected' for c in graph.components)
+            or any(e.provenance == 'user_corrected' for e in graph.connections)
+            or any(b.source == 'user_corrected' for b in graph.boundaries)):
+        raise ValueError('Invalid extraction provenance')
+    return graph

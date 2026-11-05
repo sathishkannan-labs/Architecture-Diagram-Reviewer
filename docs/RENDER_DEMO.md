@@ -30,8 +30,9 @@ Do not put these secrets in GitHub. Enter the demo code in the app sidebar and
 share it only with the intended reviewers.
 
 Live requests have one shared concurrency slot, at most 20 operations per rolling
-hour and 100 operations per process lifetime. Each operation can retry up to three
-HTTP attempts. These in-memory counters reset on service restart or redeploy;
+hour and 100 operations per process lifetime. Each completion operation can retry up to three
+HTTP attempts. Image extraction permits one schema-recovery completion, so it can
+consume two budget operations and at most six HTTP attempts. These in-memory counters reset on service restart or redeploy;
 they are demo controls, not durable billing limits. They are enforced in the Meta
 client, including text probes, and missing codes fail closed. No API key or demo
 code is supplied in the initial deployment, so live calls start disabled.
@@ -47,8 +48,8 @@ buttons are disabled without both the configured key and correct demo code.
 
 Render Free sleeps after 15 minutes of inactivity, with roughly a minute to wake.
 Session state and generated downloads are temporary and can disappear on restart.
-This public preview does not satisfy live Meta acceptance or actual Terraform
-validation acceptance. Its deploy and memory usage must be verified on Render.
+Fixture use alone does not establish live Meta acceptance. A real hosted image
+request was verified on November 4; actual Terraform validation remains external.
 
 Demo access: use a long randomly generated DEMO_CODE (at least 32 random bytes). Incorrect codes consume the shared live-request budget, preventing unlimited guessing. These are process-wide limits that reset on host restart; they are not a production authentication service. Starting a new session clears the entered code.
 

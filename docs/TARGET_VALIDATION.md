@@ -26,6 +26,8 @@ data or private architecture information to a workflow unless you intend to
 share it with that repository and its workflow infrastructure. Workflow artifacts
 are retained for seven days; normal GitHub workflow permissions and quotas apply.
 
+**Public repository warning:** requests and artifacts may be visible to other readers; signed-in users with repository read access can download workflow artifacts. Never submit confidential architecture, credentials or customer data to this public workflow. See [GitHub artifact access](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/download-workflow-artifacts).
+
 The Render download still reports `not_run` because Terraform did not run in
 Render. The workflow creates a separate ZIP with `passed`, `failed`, `timed_out`
 or `not_run` based on actual execution. The app does not import user-provided

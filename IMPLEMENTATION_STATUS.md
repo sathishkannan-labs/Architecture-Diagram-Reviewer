@@ -1,3 +1,9 @@
+# Current submission patch — 0.6.0
+
+Bounded extraction recovery, service aliases, public-workflow privacy warning and aligned submission documentation. Live image evidence is distinct from fixture runs and later Terraform validation. See [acceptance](docs/ACCEPTANCE.md) and [submission checklist](docs/SUBMISSION.md). Final video URL and actual portal submission remain pending.
+
+## Historical implementation records
+
 # Release 0.5 — final recording preparation
 
 - Added an exported finding-to-target summary and compact confirmed-findings UI. Outcomes distinguish new-baseline measures, partial measures and unresolved/out-of-scope findings; no existing-system remediation is claimed.

@@ -81,3 +81,58 @@ def test_invalid_choice_shape_is_sanitized(choice):
 def test_unsupported_image_preserves_specific_error():
     b=io.BytesIO();Image.new('RGB',(10,10)).save(b,format='GIF')
     with pytest.raises(ExtractionError,match='Only PNG/JPEG'):prepare_image(b.getvalue())
+
+@pytest.mark.parametrize('fence',['json','JSON',''])
+def test_complete_fenced_graph_needs_one_call(fence):
+    calls=[]
+    body='\x60\x60\x60'+fence+'\n'+load_fixture('single-server').model_dump_json()+'\n\x60\x60\x60'
+    def handler(request):
+        calls.append(request)
+        return httpx.Response(200,json=reply(body))
+    c=MetaClient(key='test-only',transport=httpx.MockTransport(handler))
+    try:
+        assert c.extract(png()).revision()==load_fixture('single-server').revision()
+        assert len(calls)==1
+    finally:c.close()
+
+
+def test_one_schema_retry_reuses_image_without_echoing_invalid_output():
+    calls=[]
+    def handler(request):
+        calls.append(json.loads(request.content))
+        return httpx.Response(200,json=reply('private-invalid-marker' if len(calls)==1 else load_fixture('single-server').model_dump_json()))
+    c=MetaClient(key='test-only',transport=httpx.MockTransport(handler))
+    try:
+        assert c.extract(png()).revision()==load_fixture('single-server').revision()
+        assert len(calls)==2
+        assert calls[0]['messages'][1]==calls[1]['messages'][1]
+        feedback=calls[1]['messages'][-1]['content']
+        assert 'private-invalid-marker' not in feedback
+        assert 'json_invalid' in feedback and 'never invent facts' in feedback
+    finally:c.close()
+
+
+@pytest.mark.parametrize('body',['not-json','{"components":[]}',load_fixture('single-server').model_dump_json().replace('"observed"','"user_corrected"'),'Explanation:\n'+load_fixture('single-server').model_dump_json()])
+def test_failed_recovery_stops_after_exactly_two_calls(body):
+    calls=[]
+    def handler(request):
+        calls.append(request)
+        return httpx.Response(200,json=reply(body))
+    c=MetaClient(key='test-only',transport=httpx.MockTransport(handler))
+    try:
+        with pytest.raises(ExtractionError,match='after two attempts'):c.extract(png())
+        assert len(calls)==2
+    finally:c.close()
+
+
+@pytest.mark.parametrize('reason',['length','content_filter'])
+def test_refusal_or_incomplete_response_does_not_retry_schema(reason):
+    calls=[]
+    def handler(request):
+        calls.append(request)
+        return httpx.Response(200,json={'choices':[{'finish_reason':reason,'message':{'content':'{}'}}]})
+    c=MetaClient(key='test-only',transport=httpx.MockTransport(handler))
+    try:
+        with pytest.raises(ExtractionError,match='incomplete or refused'):c.extract(png())
+        assert len(calls)==1
+    finally:c.close()

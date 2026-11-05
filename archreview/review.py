@@ -1,3 +1,4 @@
+import re
 from .models import ArchitectureGraph, Decision, Finding, TargetArchitecture
 from .coverage import control_coverage, grounded, grounded_edge
 from .scope import target_scope, open_questions
@@ -47,11 +48,11 @@ def review(graph: ArchitectureGraph) -> list[Finding]:
                 ' coverage for: '+', '.join(missing)+'. A standalone control box does not establish coverage; real-world absence is not proven.',
                 'Confirm applicable service relationships, configuration and effectiveness with the owner. Record unknowns without inventing links.')
     for c in graph.components:
-        if c.type == 'other' and 'queue' in c.label.lower():
+        if c.type == 'other' and re.search(r'\b(?:queue|sqs|kafka|rabbitmq)\b', c.label, re.IGNORECASE):
             add('AR-009','Queue resilience unverified','medium',[c],
                 'Queue failover annotation: '+c.failover+'. Delivery guarantees, retries and dead-letter handling are not established by this schema. Diagram evidence: '+(c.evidence or 'not available'),
                 'Confirm redundancy, delivery semantics, retry policy and dead-letter handling. Do not assume they are absent.')
-        if c.type == 'other' and 'object storage' in c.label.lower():
+        if c.type == 'other' and re.search(r'\b(?:object[ -]storage|s3|bucket)\b', c.label, re.IGNORECASE):
             add('AR-010','Object storage access policy unverified','high',[c],
                 'Private placement alone does not establish an access policy. Diagram evidence: '+(c.evidence or 'not available'),
                 'Confirm bucket policy, least-privilege access and encryption with the owner.')
@@ -72,7 +73,7 @@ def propose_target(graph: ArchitectureGraph, findings: list[Finding], database_s
         decision('D-NET', 'Two-AZ VPC, public ALB subnets, private application subnets, isolated database subnets. AR-003 links database exposure to its network-isolation mitigation.',
                  ['AR-003'], 'Baseline: a new IPv4 VPC in the selected AWS region; no existing network is imported.'),
         decision('D-APP', 'Internet-facing HTTP ALB routes to at least two private ASG instances across two AZs.',
-                 ['AR-001', 'AR-002'], 'Baseline: illustrative HTTP service; production TLS, application packaging, authentication, and monitoring require additional work.'),
+                 ['AR-001'], 'Baseline: illustrative HTTP service; production TLS, application packaging, authentication, and monitoring require additional work.'),
         decision('D-DB', 'Private encrypted Multi-AZ RDS PostgreSQL with managed credentials and seven-day backups.',
                  ['AR-003', 'AR-005', 'AR-006', 'AR-007'], 'Baseline: application-to-database access is allowed on port 5432; application integration is not provisioned.'),
     ])

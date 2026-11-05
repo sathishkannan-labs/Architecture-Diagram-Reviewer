@@ -247,7 +247,8 @@ if w.report:
     st.download_button('Download artifacts · '+w.report.status,w.download(),file_name='architecture-'+w.report.status+'.zip',mime='application/zip',disabled=pending_edits or pending_target)
     st.subheader('Validate this approved target')
     st.write('Run actual formatting, offline initialization and Terraform validation in the repository’s isolated Docker workflow. No AWS credentials, plan or apply are needed.')
-    st.caption('Submitting the request shares graph labels, evidence and correction history with GitHub. Review the data first. Nothing is sent automatically; repository write access is required to run the workflow.')
+    st.warning('Public GitHub repository: submitted requests and workflow artifacts can expose graph labels, evidence and correction history to other readers. Do not submit confidential diagrams, credentials or customer data. Nothing is sent automatically.')
+    st.caption('Repository write access is required to run the workflow. Use a private environment for confidential architecture.')
     if not pending_edits and not pending_target:
         try:
             request=w.validation_request()

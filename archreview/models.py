@@ -76,13 +76,6 @@ class Finding(StrictModel):
     confidence: float = Field(ge=0, le=1)
     status: Literal['confirmed', 'unverified']
 
-class ContextSuggestion(StrictModel):
-    component_ids: list[str]
-    suggestion: str = Field(max_length=3000)
-
-class ContextReview(StrictModel):
-    suggestions: list[ContextSuggestion] = Field(max_length=10)
-
 class Decision(StrictModel):
     id: str
     description: str

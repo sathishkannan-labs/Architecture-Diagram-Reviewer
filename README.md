@@ -130,3 +130,7 @@ The Python suite checks extraction failures, evidence handling, approval invalid
 - [Final recording checklist](docs/RECORDING.md)
 
 The optional [local FastAPI adapter](archreview/api.py) exposes the same workflow for developers. It is intended for localhost use, not as a publicly authenticated production API.
+
+## Submission and current evidence
+
+See [submission copy and final checklist](docs/SUBMISSION.md), [current nine-rule catalog](docs/RULES.md), [Meta integration and bounded recovery](docs/META_INTEGRATION.md), and [captured live run](docs/evidence/live-complex/README.md). The homepage describes the product; historical release records are kept in the evidence docs.

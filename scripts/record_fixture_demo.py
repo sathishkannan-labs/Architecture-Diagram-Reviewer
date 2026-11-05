@@ -29,7 +29,7 @@ try:
               e.style='position:fixed;bottom:0;left:0;right:0;z-index:999999;background:#142442;color:white;padding:15px 24px;font:18px sans-serif;border-top:3px solid #f5ba45';
               e.textContent='FIXTURE DEMO · '+text;
             }''',text)
-        caption('Synthetic diagram; no live Meta call. Docker validation is not yet verified.')
+        caption('Synthetic diagram; no live Meta call. This fixture recording expects local validation to be unavailable.')
         page.wait_for_timeout(3500)
         page.get_by_role('button',name='Load fixture (no AI call)',exact=True).click()
         page.get_by_role('button',name='Run architecture review',exact=True).wait_for()
@@ -46,7 +46,7 @@ try:
         page.get_by_text('1 human correction revision(s) recorded.',exact=True).wait_for()
         page.get_by_role('button',name='Run architecture review',exact=True).click()
         page.get_by_text('2 · Review risk evidence',exact=True).scroll_into_view_if_needed()
-        caption('3 / 6 · Six mandatory checks distinguish explicit weaknesses from missing diagram information.')
+        caption('3 / 6 · Evidence-based checks distinguish explicit weaknesses from missing diagram information.')
         page.wait_for_timeout(4500)
         page.get_by_text('3 · Approve the proposed AWS target',exact=True).scroll_into_view_if_needed()
         caption('4 / 6 · Proposed target stays separate from observations. Decisions cite evidence and assumptions.')

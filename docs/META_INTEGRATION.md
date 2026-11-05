@@ -1,12 +1,23 @@
-# Meta integration verification — 2026-11-03
+# Meta integration and evidence
 
-Documentation checked against primary Meta sources:
-- https://dev.meta.ai/docs/api-reference — official base URL `https://api.meta.ai/v1`, bearer `MODEL_API_KEY`, Chat Completions endpoint.
-- https://dev.meta.ai/docs/cookbook/vision-input — `muse-spark-1.3`, user-message `image_url` parts with inline data URLs.
-- https://dev.meta.ai/docs/api-reference/chat-completions/schemas — message and response shapes.
+The application uses the **Meta Model API** for image-to-graph extraction. The fixed host is `https://api.meta.ai/v1`, with bearer `MODEL_API_KEY`, Chat Completions and default model `muse-spark-1.3`. Model entitlement is account-dependent.
 
-This is a **Meta Model API** integration, not an assumption that the older Llama API wire format is compatible. Model entitlement remains account-dependent. The host is fixed in code; no credential-forwarding custom URL setting is accepted.
+Primary references: [API reference](https://dev.meta.ai/docs/api-reference), [vision input](https://dev.meta.ai/docs/cookbook/vision-input), [message schemas](https://dev.meta.ai/docs/api-reference/chat-completions/schemas).
 
-Live text and image calls: **NOT RUN — no MODEL_API_KEY provided in the development environment**. Do not describe M1 as passed. Run `python scripts/live_acceptance.py examples/single-server.png` after setting your key and chosen model. The script first probes text, then performs actual image extraction and records only graph output and pass/fail metadata. Graph evidence may contain diagram labels: keep the generated acceptance folder private if your diagram is confidential.
+## What was actually tested
 
-The client uses at most three attempts (network errors, 429, selected 5xx only), fixed 60-second request timeouts, capped responses, strict schema validation, no request/response debug logging, and no file uploads to the provider Files API. Images exist in memory for the request; Python cannot promise cryptographic memory erasure. Provider-side retention is governed by Meta's terms.
+The November 3 development-host entry saying live calls were not run was historical, not the current project status. A real hosted walkthrough on November 4 successfully extracted the synthetic complex CCM image using live Meta: 14 components, 12 connections and two boundaries. It included one source-backed manual clarification before review, approval and download. See [the live run summary](evidence/live-complex/README.md). A synthetic input image with a real model request is distinct from loading fixture JSON.
+
+The private demo pack contains 28 screenshots and a 115-second silent, captioned slideshow. That slideshow is assembled from screenshots, not continuous screen recording. Historical validated output is separately identified in [evidence](evidence/README.md).
+
+## Bounded recovery
+
+The adapter accepts bare JSON or a complete fenced JSON block, then validates the strict graph schema and rejects `user_corrected` provenance from the model. A schema failure permits exactly one new extraction attempt using the same image and only sanitized error type names. Invalid model output, labels and raw validation errors are not echoed into the retry feedback. It does not repair facts or guarantee success.
+
+Each completion operation has at most three HTTP attempts for selected transient failures. Extraction therefore has at most two completion operations and six HTTP attempts; a text probe has one operation and at most three attempts. Each operation consumes the hosted budget. Transport errors, refusals and incomplete responses do not trigger schema recovery.
+
+Images are checked, resized and sent in memory; response sizes and timeouts are bounded. No provider Files API or debug payload logging is used. Python does not guarantee memory erasure, and provider retention follows Meta's terms.
+
+## Why the downstream stages are deterministic
+
+Meta interprets visual labels and relationships into an editable graph. Human correction and provenance are retained. Rules classify diagram evidence; target selection, approvals and Terraform use constrained schemas and trusted templates. This boundary makes recommendations auditable and keeps model-generated executable code out of the validator. No second model-written review feature is claimed.

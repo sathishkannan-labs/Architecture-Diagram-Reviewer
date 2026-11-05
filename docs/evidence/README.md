@@ -1,3 +1,7 @@
+# Current and historical evidence
+
+See [the November 4 live complex run](live-complex/README.md) for the captured run summary. Its exact request stays in the private demo pack and its hosted report is not_run. Current fixture CI is separate.
+
 # Validated complex sample evidence
 
 [Download the validated live-Meta sample](release-0.4-live-validated-artifacts.zip).
