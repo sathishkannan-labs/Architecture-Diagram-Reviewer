@@ -1,6 +1,6 @@
 # Acceptance and submission readiness
 
-Current patch: 0.6.0. Evidence is separated by run; historical results do not automatically validate new targets.
+Current patch: 0.6.0. [Final CI evidence](evidence/release-0.6-ci.json): 169 tests passed, one skipped; actual offline Terraform validation passed for all four public fixtures. The graph preview uses escaped SVG after a browser rendering error was found and fixed. Evidence is separated by run; historical results do not automatically validate new targets.
 
 | Gate | Evidence and limit |
 |---|---|

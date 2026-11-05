@@ -1,0 +1,44 @@
+{
+  "release": "0.6.0",
+  "code_commit": "3aa7a88bd0b4a3b7f4ebcb905aeb9857ae3d2d0f",
+  "verified_at": "2026-11-05",
+  "python_ci": {
+    "passed": 169,
+    "skipped": 1,
+    "warnings": 1,
+    "run_url": "https://github.com/sathishkannan-labs/Architecture-Diagram-Reviewer/actions/runs/41944367692"
+  },
+  "offline_docker": {
+    "status": "passed",
+    "fixtures": [
+      "single-server",
+      "public-database",
+      "redundant-private",
+      "complex-ccm"
+    ],
+    "network": "none",
+    "terraform": "1.9.8",
+    "aws_provider": "5.100.0",
+    "plan_or_apply": false
+  },
+  "approved_target_fixture": {
+    "status": "passed",
+    "source_commit": "508ca19d31a352a95c70e518c5eb192ab16e3b45",
+    "run_url": "https://github.com/sathishkannan-labs/Architecture-Diagram-Reviewer/actions/runs/41943591764"
+  },
+  "hosting": {
+    "status": "live",
+    "commit": "3aa7a88bd0b4a3b7f4ebcb905aeb9857ae3d2d0f",
+    "app_url": "https://adr.sathishkannan.com/",
+    "terraform_execution": "disabled"
+  },
+  "latest_captured_live_request": {
+    "published": false,
+    "terraform_status": "not_run",
+    "note": "Kept private. Fixture validation and the historical validated live bundle do not validate this exact target."
+  },
+  "submission": {
+    "video_url": "pending",
+    "portal_submission": "not_submitted"
+  }
+}
